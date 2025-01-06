@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <string name="app_name">VibesShared</string>
+    <string name="home">Home</string>
+    <string name="friends">Friends</string>
+    <string name="chats">Chats</string>
+    <string name="profile">Profile</string>
+    <string name="settings">Settings</string>
+    <string name="about_us">AboutUs</string>
+</resources>
