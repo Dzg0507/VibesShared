@@ -1,3 +1,4 @@
+// MessagingScreen.kt
 package com.example.vibesshared.ui.ui.screens
 
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ fun MessagingScreen(navController: NavController) {
         ) {
             Text("Messaging Screen")
             HomeButton(navController)
+
             // Add UI elements for messages, input field, and media gallery
         }
     }

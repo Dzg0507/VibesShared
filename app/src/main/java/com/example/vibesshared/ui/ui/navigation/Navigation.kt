@@ -1,10 +1,18 @@
+// Navigation.kt
 package com.example.vibesshared.ui.ui.navigation
 
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.vibesshared.ui.ui.components.AppTopBar
+import com.example.vibesshared.ui.ui.components.BottomNavigationBar
+import com.example.vibesshared.ui.ui.components.NavigationDrawer
 import com.example.vibesshared.ui.ui.screens.*
 
 sealed class Screen(val route: String) {
@@ -23,23 +31,83 @@ sealed class Screen(val route: String) {
 fun Navigation(navController: NavHostController, modifier: Modifier = Modifier) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route, // Start at the LoginScreen
+        startDestination = Screen.Login.route,
         modifier = modifier
     ) {
-        composable(Screen.Home.route) { HomeScreen(navController) }
-        composable(Screen.Friends.route) { FriendsScreen(navController) }
-        composable(Screen.Chats.route) { ChatsScreen(navController) }
-        composable(Screen.Profile.route) {
-            ProfileScreen(navController, "My Profile")
-        }
-        composable(Screen.Settings.route) {
-            SettingsScreen(navController, "My Settings")
-        }
-        composable(Screen.AboutUs.route) {
-            AboutUsScreen(navController, "About VibesShared")
-        }
+        // Authentication screens (no bottom bar or drawer)
         composable(Screen.Login.route) { LoginScreen(navController) }
         composable(Screen.ForgotPassword.route) { ForgotPasswordScreen(navController) }
         composable(Screen.CreateAccount.route) { CreateAccountScreen(navController) }
+
+        // Main app screens (with bottom bar and drawer)
+        composable(Screen.Home.route) {
+            MainLayout(navController) {
+                HomeScreen(navController)
+            }
+        }
+        composable(Screen.Friends.route) {
+            MainLayout(navController) {
+                FriendsScreen(navController)
+            }
+        }
+        composable(Screen.Chats.route) {
+            MainLayout(navController) {
+                ChatsScreen(navController)
+            }
+        }
+        composable(Screen.Profile.route) {
+            MainLayout(navController) {
+                ProfileScreen(navController, "My Profile")
+            }
+        }
+        composable(Screen.Settings.route) {
+            MainLayout(navController) {
+                SettingsScreen(navController, "My Settings")
+            }
+        }
+        composable(Screen.AboutUs.route) {
+            MainLayout(navController) {
+                AboutUsScreen(navController, "About VibesShared")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainLayout(navController: NavController, content: @Composable () -> Unit) {
+    var showDrawer by remember { mutableStateOf(false) }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
+    LaunchedEffect(key1 = showDrawer) {
+        if (showDrawer) {
+            drawerState.open()
+        } else {
+            drawerState.close()
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            AppTopBar(onMenuIconClick = { showDrawer = !showDrawer })
+        },
+        bottomBar = {
+            BottomNavigationBar(navController = navController)
+        }
+    ) { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding)) {
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = {
+                    NavigationDrawer(navController = navController) { screen ->
+                        navController.navigate(screen.route)
+                        showDrawer = false
+                    }
+                },
+                gesturesEnabled = showDrawer
+            ) {
+                content()
+            }
+        }
     }
 }

@@ -1,3 +1,4 @@
+// AboutUsScreen.kt
 package com.example.vibesshared.ui.ui.screens
 
 import androidx.compose.foundation.layout.Column
@@ -12,7 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.vibesshared.ui.ui.components.HomeButton
 
 @Composable
 fun AboutUsScreen(navController: NavController, aboutName: String) {
@@ -34,9 +34,6 @@ fun AboutUsScreen(navController: NavController, aboutName: String) {
         Text("Developers: The VibesShared Team")
         Text("Contact Email: support@vibesshared.com")
 
-        Spacer(modifier = Modifier.weight(1f)) // Push the HomeButton to the bottom
 
-        HomeButton(navController)
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }

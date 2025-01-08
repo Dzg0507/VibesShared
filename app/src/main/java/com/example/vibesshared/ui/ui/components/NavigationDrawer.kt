@@ -1,3 +1,4 @@
+// NavigationDrawer.kt
 package com.example.vibesshared.ui.ui.components
 
 import androidx.compose.foundation.clickable

@@ -1,6 +1,10 @@
+// BottomNavigationBar.kt
 package com.example.vibesshared.ui.ui.components
 
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -13,7 +17,7 @@ import com.example.vibesshared.ui.ui.navigation.Screen
 
 sealed class BottomNavItem(val title: Int, val icon: Int, val screen: Screen) {
     object Home : BottomNavItem(R.string.home, R.drawable.ic_home, Screen.Home)
-    object Friends : BottomNavItem(R.string.friends, R.drawable.ic_friend, Screen.Friends) // Changed to ic_friend
+    object Friends : BottomNavItem(R.string.friends, R.drawable.ic_friend, Screen.Friends)
     object Chats : BottomNavItem(R.string.chats, R.drawable.ic_chat, Screen.Chats)
 }
 
