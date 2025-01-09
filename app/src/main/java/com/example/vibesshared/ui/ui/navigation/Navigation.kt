@@ -1,113 +1,144 @@
-// Navigation.kt
 package com.example.vibesshared.ui.ui.navigation
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.vibesshared.ui.ui.components.AppTopBar
-import com.example.vibesshared.ui.ui.components.BottomNavigationBar
-import com.example.vibesshared.ui.ui.components.NavigationDrawer
 import com.example.vibesshared.ui.ui.screens.*
+import com.example.vibesshared.ui.ui.viewmodel.AuthState
+import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
 
-sealed class Screen(val route: String) {
-    object Home : Screen("home")
-    object Friends : Screen("friends")
-    object Chats : Screen("chats")
-    object Profile : Screen("profile")
-    object Settings : Screen("settings")
-    object AboutUs : Screen("about_us")
-    object Login : Screen("login")
-    object ForgotPassword : Screen("forgot_password")
-    object CreateAccount : Screen("create_account")
+sealed class Screen(
+    val route: String,
+    val icon: ImageVector? = null,
+    val title: String? = null,
+    val name: String = "",
+    val settingsName: String = "Settings",
+    val aboutName: String = "About Us"
+) {
+    // Bottom Navigation Items
+    data object Home : Screen("home", Icons.Default.Home, "Home")
+    data object Friends : Screen("friends", Icons.Default.People, "Friends")
+    data object Chats : Screen("chats", Icons.AutoMirrored.Filled.Chat, "Chats")
+
+    // Drawer Navigation Items
+    data object Profile : Screen(
+        route = "profile",
+        icon = Icons.Default.Person,
+        title = "Profile",
+        name = "Profile"
+    )
+    data object Settings : Screen(
+        route = "settings",
+        icon = Icons.Default.Settings,
+        title = "Settings",
+        name = "Settings"
+    )
+    data object AboutUs : Screen(
+        route = "about_us",
+        icon = Icons.Default.Info,
+        title = "About Us",
+        name = "About Us"
+    )
+
+    // Auth Screens
+    data object Login : Screen("login")
+    data object ForgotPassword : Screen("forgot_password")
+    data object CreateAccount : Screen("create_account")
+
+    companion object {
+        fun bottomNavItems() = listOf(Home, Friends, Chats)
+        fun drawerNavItems() = listOf(Profile, Settings, AboutUs)
+    }
 }
 
 @Composable
-fun Navigation(navController: NavHostController, modifier: Modifier = Modifier) {
+fun Navigation(
+    navController: NavHostController,
+    authViewModel: AuthViewModel,
+    modifier: Modifier = Modifier,
+    onNavigate: (String) -> Unit
+) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route,
+        startDestination = if (authViewModel.authState.collectAsState().value is AuthState.Authenticated) {
+            Screen.Home.route
+        } else {
+            Screen.Login.route
+        },
         modifier = modifier
     ) {
-        // Authentication screens (no bottom bar or drawer)
-        composable(Screen.Login.route) { LoginScreen(navController) }
-        composable(Screen.ForgotPassword.route) { ForgotPasswordScreen(navController) }
-        composable(Screen.CreateAccount.route) { CreateAccountScreen(navController) }
+        // Auth screens
+        composable(Screen.Login.route) {
+            LoginScreen(
+                navController = navController,
+                authViewModel = authViewModel
+            )
+        }
+        composable(Screen.CreateAccount.route) {
+            CreateAccountScreen(
+                navController = navController,
+                authViewModel = authViewModel
+            )
+        }
+        composable(Screen.ForgotPassword.route) {
+            ForgotPasswordScreen(
+                navController = navController,
+                authViewModel = authViewModel
+            )
+        }
 
-        // Main app screens (with bottom bar and drawer)
+        // Bottom Nav Screens
         composable(Screen.Home.route) {
-            MainLayout(navController) {
-                HomeScreen(navController)
-            }
+            HomeScreen(
+                navController = navController,
+                authViewModel = authViewModel
+            )
         }
         composable(Screen.Friends.route) {
-            MainLayout(navController) {
-                FriendsScreen(navController)
-            }
+            FriendsScreen(navController)
         }
         composable(Screen.Chats.route) {
-            MainLayout(navController) {
-                ChatsScreen(navController)
-            }
+            ChatsScreen(navController)
         }
+
+        // Drawer Screens
         composable(Screen.Profile.route) {
-            MainLayout(navController) {
-                ProfileScreen(navController, "My Profile")
-            }
+            ProfileScreen(
+                navController = navController,
+                authViewModel = authViewModel,
+                name = Screen.Profile.title ?: "",
+                settingsName = Screen.Settings.title ?: "",
+                aboutName = Screen.AboutUs.title ?: ""
+            )
         }
         composable(Screen.Settings.route) {
-            MainLayout(navController) {
-                SettingsScreen(navController, "My Settings")
-            }
+            SettingsScreen(
+                navController = navController,
+                authViewModel = authViewModel,
+                name = Screen.Settings.title ?: "",
+                settingsName = Screen.Settings.title ?: "",
+                aboutName = Screen.AboutUs.title ?: ""
+            )
         }
         composable(Screen.AboutUs.route) {
-            MainLayout(navController) {
-                AboutUsScreen(navController, "About VibesShared")
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MainLayout(navController: NavController, content: @Composable () -> Unit) {
-    var showDrawer by remember { mutableStateOf(false) }
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-
-    LaunchedEffect(key1 = showDrawer) {
-        if (showDrawer) {
-            drawerState.open()
-        } else {
-            drawerState.close()
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            AppTopBar(onMenuIconClick = { showDrawer = !showDrawer })
-        },
-        bottomBar = {
-            BottomNavigationBar(navController = navController)
-        }
-    ) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding)) {
-            ModalNavigationDrawer(
-                drawerState = drawerState,
-                drawerContent = {
-                    NavigationDrawer(navController = navController) { screen ->
-                        navController.navigate(screen.route)
-                        showDrawer = false
-                    }
-                },
-                gesturesEnabled = showDrawer
-            ) {
-                content()
-            }
+            AboutUsScreen(
+                name = Screen.AboutUs.title ?: "",
+                settingsName = Screen.Settings.title ?: "",
+                aboutName = Screen.AboutUs.title ?: ""
+            )
         }
     }
 }

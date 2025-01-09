@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="0"
+        android:endColor="@color/ElectricPurple"
+        android:startColor="@color/NeonPink"
+        android:type="linear" />
+    <path
+        android:pathData="M0,100 C50,0 100,100 150,0 C200,100 250,0 300,100 C350,0 400,100 450,0 C500,100 550,0 600,100 C650,0 700,100 750,0 C800,100 850,0 900,100 C950,0 1000,100 1050,0 C1100,100 1150,0 1200,100"
+        android:strokeColor="@color/VividBlue"
+        android:strokeWidth="5" />
+</shape>

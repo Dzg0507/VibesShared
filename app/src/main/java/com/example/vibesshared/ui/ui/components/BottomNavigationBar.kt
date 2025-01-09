@@ -1,5 +1,4 @@
-// BottomNavigationBar.kt
-package com.example.vibesshared.ui.ui.components
+package com.example.vibesshared.components
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -7,49 +6,50 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.vibesshared.R
 import com.example.vibesshared.ui.ui.navigation.Screen
-
-sealed class BottomNavItem(val title: Int, val icon: Int, val screen: Screen) {
-    object Home : BottomNavItem(R.string.home, R.drawable.ic_home, Screen.Home)
-    object Friends : BottomNavItem(R.string.friends, R.drawable.ic_friend, Screen.Friends)
-    object Chats : BottomNavItem(R.string.chats, R.drawable.ic_chat, Screen.Chats)
-}
+import com.example.vibesshared.ui.ui.viewmodel.AuthState
 
 @Composable
-fun BottomNavigationBar(navController: NavController) {
-    val items = listOf(
-        BottomNavItem.Home,
-        BottomNavItem.Friends,
-        BottomNavItem.Chats
-    )
+fun BottomNavigationBar(
+    navController: NavController,
+    authState: AuthState,
+    currentRoute: String?
+) {
+    // Only show bottom nav if user is authenticated and not on auth screens
+    if (authState is AuthState.Authenticated && !isAuthScreen(currentRoute)) {
+        NavigationBar {
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentDestination = navBackStackEntry?.destination?.route
 
-    NavigationBar {
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
-
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(id = item.icon),
-                        contentDescription = stringResource(id = item.title)
-                    )
-                },
-                label = { Text(stringResource(id = item.title)) },
-                selected = currentRoute == item.screen.route,
-                onClick = {
-                    navController.navigate(item.screen.route) {
-                        popUpTo(navController.graph.startDestinationId)
-                        launchSingleTop = true
+            // Using only Home, Friends, and Chats
+            Screen.bottomNavItems().forEach { screen ->
+                NavigationBarItem(
+                    icon = {
+                        screen.icon?.let { Icon(it, contentDescription = screen.title) }
+                    },
+                    label = { Text(screen.title ?: "") },
+                    selected = currentDestination == screen.route,
+                    onClick = {
+                        navController.navigate(screen.route) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     }
+}
+
+private fun isAuthScreen(route: String?): Boolean {
+    return route in listOf(
+        Screen.Login.route,
+        Screen.CreateAccount.route,
+        Screen.ForgotPassword.route
+    )
 }

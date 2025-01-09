@@ -25,9 +25,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.vibesshared.R
+import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
 
 @Composable
-fun ProfileScreen(navController: NavController, name: String) {
+fun ProfileScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    name: String,
+    settingsName: String,
+    aboutName: String
+) {
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current
     val bitmap = remember {
@@ -58,7 +65,7 @@ fun ProfileScreen(navController: NavController, name: String) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Image(
-            painter = painterResource(id = R.drawable.my_profile_icon), // Use a placeholder image initially
+            painter = painterResource(id = R.drawable.my_profile_icon),
             contentDescription = "Profile Picture",
             modifier = Modifier.clickable {
                 launcher.launch("image/*")
@@ -70,5 +77,20 @@ fun ProfileScreen(navController: NavController, name: String) {
         Text("Full Name: John Doe")
         Text("Bio: This is my bio")
 
+        // You can use settingsName and aboutName in navigation or UI if needed
+        // For example:
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Go to $settingsName",
+            modifier = Modifier.clickable {
+                navController.navigate("settings")
+            }
+        )
+        Text(
+            text = "Go to $aboutName",
+            modifier = Modifier.clickable {
+                navController.navigate("about_us")
+            }
+        )
     }
 }

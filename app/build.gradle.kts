@@ -1,3 +1,4 @@
+
 import org.gradle.api.JavaVersion.VERSION_20
 
 plugins {
@@ -5,7 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     kotlin("plugin.serialization") version "1.8.21"
-
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -48,7 +49,7 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "2.0" // Replace with your compose version
     }
-    packaging{
+    packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
@@ -67,11 +68,18 @@ dependencies {
     // For navigation
     implementation(libs.androidx.navigation.compose)
 
+
+
     // Material icons (core and extended)
     implementation(libs.androidx.material.icons.core)
     implementation(libs.material.icons.extended)
     implementation(libs.androidx.material3.android)
     implementation(libs.androidx.foundation.android)
+    implementation(libs.androidx.ui.tooling)
+    implementation(libs.androidx.espresso.contrib)
+    implementation(libs.androidx.animation.core.android)
+    implementation(libs.androidx.animation.android)
+    implementation(libs.firebase.crashlytics.buildtools)
 
 
     // Your test dependencies
@@ -87,4 +95,12 @@ dependencies {
     annotationProcessor(libs.glide.compiler)
     implementation(libs.androidx.media3.exoplayer) // Or latest version
     implementation(libs.androidx.media3.ui)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.database.ktx)
+    implementation(libs.slf4j.api)
+    implementation(libs.slf4j.simple)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.coil.compose)
+    implementation (libs.kotlinx.coroutines.play.services)
 }

@@ -1,4 +1,3 @@
-// HomeScreen.kt
 package com.example.vibesshared.ui.ui.screens
 
 import android.net.Uri
@@ -33,9 +32,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.sp
 import com.example.vibesshared.ui.ui.theme.*
+import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel
+) {
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current
     val bitmap = remember {
@@ -144,11 +147,6 @@ fun HomeScreen(navController: NavController) {
                 Text("Full Name: John Doe", color = Color.White, fontSize = 18.sp)
                 Text("Bio: This is my bio", color = Color.White, fontSize = 18.sp)
             }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            HomeButton(navController)
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
