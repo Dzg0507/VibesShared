@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -79,7 +78,7 @@ fun LoginScreen(
             AuthState.Unauthenticated -> {
                 isLoading = false
             }
-            else -> { } // Add this else branch to make it exhaustive
+             // Add this else branch to make it exhaustive
         }
     }
 
@@ -92,7 +91,7 @@ fun LoginScreen(
     ) {
         // Logo
         Image(
-            painter = painterResource(id = R.drawable.my_profile_icon), // Make sure to add your logo
+            painter = painterResource(id = R.drawable.ic_home), // Make sure to add your logo
             contentDescription = "App Logo",
             modifier = Modifier
                 .size(120.dp)

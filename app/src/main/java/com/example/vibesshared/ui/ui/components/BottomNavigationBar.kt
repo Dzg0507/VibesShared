@@ -1,4 +1,4 @@
-package com.example.vibesshared.components
+package com.example.vibesshared.ui.ui.components
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -17,24 +17,22 @@ fun BottomNavigationBar(
     authState: AuthState,
     currentRoute: String?
 ) {
-    // Only show bottom nav if user is authenticated and not on auth screens
     if (authState is AuthState.Authenticated && !isAuthScreen(currentRoute)) {
         NavigationBar {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination?.route
 
-            // Using only Home, Friends, and Chats
             Screen.bottomNavItems().forEach { screen ->
                 NavigationBarItem(
-                    icon = {
-                        screen.icon?.let { Icon(it, contentDescription = screen.title) }
-                    },
-                    label = { Text(screen.title ?: "") },
+                    icon = { Icon(screen.icon!!, contentDescription = screen.title) },
+                    label = { Text(screen.title!!) },
                     selected = currentDestination == screen.route,
                     onClick = {
                         navController.navigate(screen.route) {
-                            popUpTo(navController.graph.startDestinationId) {
+                            // Pop up to the Home screen to reset the navigation stack
+                            popUpTo(Screen.Home.route) {
                                 saveState = true
+                                inclusive = true // This might also be necessary
                             }
                             launchSingleTop = true
                             restoreState = true

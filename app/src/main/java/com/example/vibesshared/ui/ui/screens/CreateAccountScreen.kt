@@ -83,7 +83,7 @@ fun CreateAccountScreen(
                 isLoading = false
             }
 
-            is AuthState.Error->{}
+
             else -> {}
         }
 

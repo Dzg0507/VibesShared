@@ -12,6 +12,7 @@
     <color name="teal_on_primary_container">#004D40</color>
 
     <!-- Other Colors -->
+
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="background">#FAFAFA</color>

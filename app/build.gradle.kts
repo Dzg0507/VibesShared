@@ -1,12 +1,17 @@
 
 import org.gradle.api.JavaVersion.VERSION_20
 
+
 plugins {
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")
     kotlin("plugin.serialization") version "1.8.21"
     id("com.google.gms.google-services")
+    id("com.github.fkorotkov.libraries") version "1.1"
+
+
+
 }
 
 android {
@@ -15,7 +20,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.vibesshared"
-        minSdk = 25
+        minSdk = 28
         //noinspection EditedTargetSdkVersion
         targetSdk = 35
         versionCode = 1
@@ -26,6 +31,12 @@ android {
             useSupportLibrary = true
         }
     }
+buildFeatures {
+    compose = true
+}
+composeOptions {
+    kotlinCompilerExtensionVersion = "2.1.0" // Replace with your compose version
+}
 
     buildTypes {
         release {
@@ -47,7 +58,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "2.0" // Replace with your compose version
+        kotlinCompilerExtensionVersion = "2.1.0" // Replace with your compose version
     }
     packaging {
         resources {
@@ -80,6 +91,9 @@ dependencies {
     implementation(libs.androidx.animation.core.android)
     implementation(libs.androidx.animation.android)
     implementation(libs.firebase.crashlytics.buildtools)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.kotlin.stdlib)
+    implementation(libs.androidx.foundation.android)
 
 
     // Your test dependencies
@@ -103,4 +117,10 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.coil.compose)
     implementation (libs.kotlinx.coroutines.play.services)
+    implementation(libs.lottie)
+    implementation(libs.lottie.compose)
+    implementation(libs.androidx.datastore.preferences)
+    implementation (libs.kotlin.reflect)
+    implementation(libs.coil.compose) // Or latest version
+
 }

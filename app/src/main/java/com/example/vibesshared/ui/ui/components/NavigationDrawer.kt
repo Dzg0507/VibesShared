@@ -1,52 +1,66 @@
 package com.example.vibesshared.ui.ui.components
 
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.Icon
+import android.util.Log
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.vibesshared.ui.ui.navigation.Screen
-import com.example.vibesshared.ui.ui.viewmodel.AuthState
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavigationDrawer(
     navController: NavController,
-    authState: AuthState,
-    currentRoute: String?,
+    drawerState: DrawerState,
+    scope: CoroutineScope,
     content: @Composable () -> Unit
 ) {
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-
+    val items = listOf(
+        Screen.Profile,
+        Screen.Settings,
+        Screen.AboutUs
+    )
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
-                // Profile is now first in the drawer
-                Screen.drawerNavItems().forEach { screen ->
+                Spacer(Modifier.height(12.dp))
+                items.forEach { item ->
                     NavigationDrawerItem(
-                        icon = {
-                            screen.icon?.let { Icon(it, contentDescription = screen.title) }
-                        },
-                        label = { Text(screen.title ?: "") },
-                        selected = currentRoute == screen.route,
+                        label = { Text(item.title ?: "") },
+                        selected = false,
                         onClick = {
                             scope.launch {
+                                Log.d("NavigationDrawer", "Navigating to: ${item.route}")
+                                navController.navigate(item.route) {
+                                    // Pop up to the Home screen to reset the navigation stack
+                                    popUpTo(Screen.Home.route) {
+                                        inclusive = true
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                                 drawerState.close()
-                                navController.navigate(screen.route)
                             }
-                        }
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                     )
                 }
             }
-        }
-    ) {
-        content()
-    }
+        },
+        content = content
+    )
 }
