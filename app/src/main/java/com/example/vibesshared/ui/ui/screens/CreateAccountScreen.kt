@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.vibesshared.R
+import com.example.vibesshared.ui.ui.components.UserProfile
 import com.example.vibesshared.ui.ui.navigation.Screen
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
 import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
@@ -57,12 +58,16 @@ fun CreateAccountScreen(
     navController: NavController,
     authViewModel: AuthViewModel
 ) {
-    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var bio by remember { mutableStateOf("") }
+    var profilePictureUri by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val authState by authViewModel.authState.collectAsState()
 
@@ -212,8 +217,14 @@ fun CreateAccountScreen(
                 onClick = {
                     if (password == confirmPassword) {
                         isLoading = true
+                        val newUserProfile = UserProfile(
+                            firstName = firstName,
+                            lastName = lastName,
+                            email = email,
+                            bio = "",
+                            profilePictureUri = null)
                         scope.launch {
-                            authViewModel.createAccount(email, password)
+                            authViewModel.createAccount(email, password, newUserProfile)
                         }
                     }
                 },

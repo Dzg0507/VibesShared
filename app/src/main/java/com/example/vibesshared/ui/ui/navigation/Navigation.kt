@@ -26,6 +26,7 @@ import com.example.vibesshared.ui.ui.screens.ForgotPasswordScreen
 import com.example.vibesshared.ui.ui.screens.FriendsScreen
 import com.example.vibesshared.ui.ui.screens.HomeScreen
 import com.example.vibesshared.ui.ui.screens.LoginScreen
+import com.example.vibesshared.ui.ui.screens.MessagingScreen
 import com.example.vibesshared.ui.ui.screens.ProfileScreen
 import com.example.vibesshared.ui.ui.screens.SettingsScreen
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
@@ -39,8 +40,6 @@ sealed class Screen(
     val name: String = "",
     val settingsName: String = "Settings",
     val aboutName: String = "About Us",
-
-
 ) {
     // Bottom Navigation Items
     data object Home : Screen("home", Icons.Default.Home, "Home")
@@ -48,27 +47,29 @@ sealed class Screen(
     data object Chats : Screen("chats", Icons.AutoMirrored.Filled.Chat, "Chats")
 
     // Drawer Navigation Items
-    data object Profile : Screen(
-        route = "profile",
-        icon = Icons.Default.Person,
-        title = "Profile",
-        name = "Profile",
+    data object Profile :
+        Screen(
+            route = "profile",
+            icon = Icons.Default.Person,
+            title = "Profile",
+            name = "Profile"
+        )
 
-    )
+    data object Settings :
+        Screen(
+            route = "settings",
+            icon = Icons.Default.Settings,
+            title = "Settings",
+            name = "Settings"
+        )
 
-    data object Settings : Screen(
-        route = "settings",
-        icon = Icons.Default.Settings,
-        title = "Settings",
-        name = "Settings"
-    )
-
-    data object AboutUs : Screen(
-        route = "about_us",
-        icon = Icons.Default.Info,
-        title = "About Us",
-        name = "About Us"
-    )
+    data object AboutUs :
+        Screen(
+            route = "about_us",
+            icon = Icons.Default.Info,
+            title = "About Us",
+            name = "About Us"
+        )
 
     // Auth Screens
     data object Login : Screen("login")
@@ -146,6 +147,14 @@ fun Navigation(
                 ChatsScreen(navController)
             }
 
+            // Messaging Screen
+            composable(
+                route = "messaging/{chatId}",
+            ) { backStackEntry ->
+                val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+                MessagingScreen(navController, chatId)
+            }
+
             // Drawer Screens
             composable(Screen.Profile.route) {
                 ProfileScreen(
@@ -153,8 +162,8 @@ fun Navigation(
                     authViewModel = authViewModel,
                     profileViewModel = profileViewModel,
                     name = Screen.Profile.title ?: "",
-                    settingsName = Screen.Settings.title ?: "",
-                    aboutName = Screen.AboutUs.title ?: ""
+                   // settingsName = Screen.Settings.title ?: "",
+                    //aboutName = Screen.AboutUs.title ?: ""
                 )
             }
 

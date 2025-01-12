@@ -1,8 +1,6 @@
-// FriendsScreen.kt
 package com.example.vibesshared.ui.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -16,8 +14,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,12 +30,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,48 +51,61 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import coil3.compose.AsyncImage
 import com.example.vibesshared.ui.ui.theme.ElectricPurple
 import com.example.vibesshared.ui.ui.theme.LimeGreen
 import com.example.vibesshared.ui.ui.theme.NeonPink
-import com.example.vibesshared.ui.ui.theme.SunsetOrange
 import com.example.vibesshared.ui.ui.theme.VividBlue
+import kotlinx.coroutines.delay
+import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
 
-data class Friend(val name: String, val avatarUrl: String, val post: String)
+data class Friend(val name: String, val avatarUrl: String, val post: String, val isOnline: Boolean = Random.nextBoolean())
 
 val friends = listOf(
-    Friend("Alice", "https://example.com/avatar1.jpg", "Feeling good today! 😎"),
-    Friend("Bob", "https://example.com/avatar2.jpg", "Just finished a great workout! 💪"),
-    Friend("Charlie", "https://example.com/avatar3.jpg", "Excited for the weekend! 🎉"),
-    Friend("David", "https://example.com/avatar4.jpg", "Enjoying a delicious coffee ☕"),
+    Friend("Alice", "https://picsum.photos/200/300", "Feeling good today! 😎"),
+    Friend("Bob", "https://picsum.photos/200/300", "Just finished a great workout! 💪"),
+    Friend("Charlie", "https://picsum.photos/200/300", "Excited for the weekend! 🎉"),
+    Friend("David", "https://picsum.photos/200/300", "Enjoying a delicious coffee ☕"),
+    Friend("Alice1", "https://picsum.photos/200/300", "Feeling good today! 😎"),
+    Friend("Bob1", "https://picsum.photos/200/300", "Just finished a great workout! 💪"),
+    Friend("Charlie1", "https://picsum.photos/200/300", "Excited for the weekend! 🎉"),
+    Friend("David1", "https://picsum.photos/200/300", "Enjoying a delicious coffee ☕")
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+val cardColors = listOf(
+    Color(0xFFDC8686),
+    Color(0xFF8572CB),
+    Color(0xFFF4EAE0),
+    Color(0xFF6D5D6E),
+    Color(0xFF393646)
+)
+
 @Composable
-fun FriendsScreen(navController: NavController) {
+fun FriendsScreen(navController: NavHostController) {
+    var expandedFriend by remember { mutableStateOf<Friend?>(null) }
     val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
-    var expandedFriend by remember { mutableStateOf<Friend?>(null) }
 
     val gradientColors = listOf(ElectricPurple, NeonPink, VividBlue)
-    val transition = rememberInfiniteTransition()
-    val currentOffset = transition.animateFloat(
+    val infiniteTransition = rememberInfiniteTransition()
+    val currentOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = screenWidthDp.value * gradientColors.size,
+        targetValue = with(LocalDensity.current) { screenWidthDp.toPx() } * gradientColors.size,
         animationSpec = infiniteRepeatable(
             animation = tween(5000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
-        )
+        ), label = ""
     )
 
     Box(
@@ -94,59 +114,51 @@ fun FriendsScreen(navController: NavController) {
             .background(
                 Brush.horizontalGradient(
                     colors = gradientColors,
-                    startX = currentOffset.value - screenWidthDp.value,
-                    endX = currentOffset.value
+                    startX = currentOffset - with(LocalDensity.current) { screenWidthDp.toPx() },
+                    endX = currentOffset
                 )
             )
     ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(16.dp),
+            contentPadding = PaddingValues(top = 70.dp, bottom = 60.dp)
         ) {
             items(friends) { friend ->
                 FriendCard(
                     friend = friend,
                     isExpanded = expandedFriend == friend,
-                    onExpandClick = { expandedFriend = if (expandedFriend == friend) null else friend },
-                    navController = navController
+                    onExpandClick = {
+                        expandedFriend = if (expandedFriend == friend) null else friend
+                    },
+                    navController = navController,
+                    cardColors = cardColors,
+                    friendId = friend.name
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun FriendCard(
     friend: Friend,
     isExpanded: Boolean,
     onExpandClick: () -> Unit,
-    navController: NavController
+    navController: NavHostController,
+    cardColors: List<Color>,
+    friendId: String
 ) {
-    // Breathing animation
-    val infiniteTransition = rememberInfiniteTransition()
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 0.75f,
-        targetValue = 1.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
+    var cardColor by remember { mutableStateOf(LimeGreen) }
 
-    // Smooth scrolling animation
-    val scrollOffset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = -1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 15000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Restart
-        )
-    )
+    LaunchedEffect(isExpanded) {
+        if (isExpanded) {
+            cardColor = cardColors.random()
+        }
+    }
+
+    val selectedColors = if (isExpanded) CardDefaults.cardColors(containerColor = cardColor) else CardDefaults.cardColors(containerColor = LimeGreen)
 
     Card(
         modifier = Modifier
@@ -155,38 +167,72 @@ fun FriendCard(
             .animateContentSize()
             .clickable(onClick = onExpandClick)
             .zIndex(if (isExpanded) 1f else 0f),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isExpanded) SunsetOrange else LimeGreen
-        )
+        shape = RoundedCornerShape(25.dp),
+        colors = selectedColors,
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header Section
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(if (isExpanded) 80.dp else 50.dp)
-                        .clip(CircleShape)
-                        .background(Color.LightGray)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box {
+                        AsyncImage(
+                            model = friend.avatarUrl,
+                            contentDescription = "Avatar",
+                            modifier = Modifier
+                                .size(if (isExpanded) 80.dp else 60.dp)
+                                .clip(CircleShape)
+                        )
+                        if (friend.isOnline) {
+                            Box(
+                                modifier = Modifier
+                                    .size(if (isExpanded) 15.dp else 10.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Green)
+                                    .align(Alignment.BottomEnd)
+                                    .offset(
+                                        x = if (isExpanded) (-2).dp else (-1).dp,
+                                        y = if (isExpanded) (-2).dp else (-1).dp
+                                    )
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
 
-                Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = friend.name,
+                            style = typography.headlineSmall.copy(
+                                fontSize = if (isExpanded) 22.sp else 18.sp,
+                                color = Color.Black,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                        if (isExpanded) {
+                            Text(
+                                text = "Tap to close",
+                                style = typography.bodySmall.copy(color = Color.Black)
+                            )
+                        }
+                    }
+                }
 
-                Text(
-                    text = friend.name,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
+                if (!isExpanded) {
+                    IconButton(onClick = { /* TODO: Implement Add Friend logic */ }) {
+                        Icon(
+                            imageVector = Icons.Filled.PersonAdd,
+                            contentDescription = "Add Friend",
+                            tint = Color.Black
+                        )
+                    }
+                }
             }
 
             AnimatedVisibility(
@@ -205,57 +251,59 @@ fun FriendCard(
                             .padding(vertical = 8.dp)
                             .clip(RoundedCornerShape(8.dp))
                     ) {
-                        val baseText = friend.post + "" // Added fixed spacing
-
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clipToBounds()
                         ) {
-                            // First copy
-                            Text(
-                                text = baseText,
-                                style = MaterialTheme.typography.bodyLarge.copy(
-                                    color = Color.White,
-                                    fontSize = 20.sp
-                                ),
-                                modifier = Modifier
-                                    .offset(x = with(LocalDensity.current) {
-                                        (scrollOffset * 1000+1000).dp
-                                    })
-                                    .scale(scale),
-                                maxLines = 1,
-                                softWrap = false
-                            )
+                            val words = friend.post.split(" ")
+                            var animatedText by remember { mutableStateOf("") }
 
-                            // Second copy
+                            LaunchedEffect(key1 = friend.post) {
+                                words.forEachIndexed { index, word ->
+                                    animatedText = words.subList(0, index + 1).joinToString(" ")
+                                    delay(200.milliseconds)
+                                }
+                            }
+
                             Text(
-                                text = baseText,
-                                style = MaterialTheme.typography.bodyLarge.copy(
-                                    color = Color.White,
-                                    fontSize = 20.sp
+                                text = animatedText,
+                                style = typography.bodyLarge.copy(
+                                    color = Color.Black,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
                                 ),
-                                modifier = Modifier
-                                    .offset(x = with(LocalDensity.current) {
-                                        (scrollOffset * 1000 + 1000).dp
-                                    })
-                                    .scale(scale),
-                                maxLines = 1,
-                                softWrap = false
+                                modifier = Modifier.fillMaxWidth(),
+                                maxLines = if (isExpanded) Int.MAX_VALUE else 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
 
-                    Text(
-                        text = "More details about ${friend.name}",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = Color.White.copy(alpha = 0.8f)
-                        ),
+                    Button(
+                        onClick = {
+                            navController.navigate("messaging/$friendId")
+                        },
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .align(Alignment.CenterHorizontally)
                             .padding(top = 16.dp),
-                        textAlign = TextAlign.Center
-                    )
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC8686))
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Message,
+                            contentDescription = "Message",
+                            tint = Color.Black
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Message",
+                            style = typography.bodyLarge.copy(
+                                color = Color.Black,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
                 }
             }
         }

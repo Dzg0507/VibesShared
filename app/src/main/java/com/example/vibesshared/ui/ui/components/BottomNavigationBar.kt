@@ -17,7 +17,9 @@ fun BottomNavigationBar(
     authState: AuthState,
     currentRoute: String?
 ) {
-    if (authState is AuthState.Authenticated && !isAuthScreen(currentRoute)) {
+    val showBottomBar = authState is AuthState.Authenticated && !isAuthScreen(currentRoute)
+
+    if (showBottomBar) {
         NavigationBar {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination?.route

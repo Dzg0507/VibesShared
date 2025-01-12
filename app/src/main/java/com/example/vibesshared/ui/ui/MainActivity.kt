@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
                 NavigationDrawer(
                     navController = navController,
                     drawerState = drawerState,
-                    scope = scope
+
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
