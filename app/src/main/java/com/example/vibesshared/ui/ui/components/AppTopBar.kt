@@ -1,6 +1,7 @@
 package com.example.vibesshared.ui.ui.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerState
@@ -18,12 +19,8 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBar(
-    scope: CoroutineScope,
-    drawerState: DrawerState,
-    title: String,
-    modifier: Modifier = Modifier
-) {
+fun TopBar(scope: CoroutineScope, drawerState: DrawerState, title: String,
+           modifier: Modifier = Modifier.height(55.dp)) {
     CenterAlignedTopAppBar(
         title = { Text(text = title) },
         navigationIcon = {

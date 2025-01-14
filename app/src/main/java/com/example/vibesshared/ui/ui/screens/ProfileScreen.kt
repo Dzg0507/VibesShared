@@ -360,7 +360,7 @@ fun ProfileScreen(
     val coroutineScope = rememberCoroutineScope()
     val userProfileState = profileViewModel.userProfile.collectAsState(initial = null)
     var showSaveConfirmation by remember { mutableStateOf(false) }
-    var focusedField by remember { mutableStateOf<TextFieldType?>(null) }
+    val focusedField by remember { mutableStateOf<TextFieldType?>(null) }
 
     val profilePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -592,7 +592,7 @@ fun ProfileScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(100.dp))
+                Spacer(modifier = Modifier.height(50.dp))
             }
         }
     }

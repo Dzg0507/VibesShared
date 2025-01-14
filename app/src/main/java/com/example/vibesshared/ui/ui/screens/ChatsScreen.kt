@@ -1,6 +1,8 @@
 package com.example.vibesshared.ui.ui.screens
 
 import android.annotation.SuppressLint
+import android.net.Uri
+import android.widget.VideoView
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -31,8 +33,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -58,10 +60,12 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -74,37 +78,39 @@ import com.example.vibesshared.ui.ui.viewmodel.ChatData
 import com.example.vibesshared.ui.ui.viewmodel.ChatsViewModel
 import com.example.vibesshared.ui.ui.viewmodel.MessageData
 
-data class Chat(
-    val id: Int,
-    val name: String,
-    val lastMessage: String,
-    val time: String,
-    val avatarUrl: String,
-    val unreadMessages: Int
-)
-
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatsScreen(navController: NavController) {
     val viewModel: ChatsViewModel = viewModel()
     val chatDataList by viewModel.chatDataList.collectAsState()
-
     var showNewChatDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
-    val gradientColors = listOf(
-        ElectricPurple, NeonPink, VividBlue, SunsetOrange, LimeGreen
-    )
+    val videoUri = remember {
+        Uri.parse("android.resource://${context.packageName}/raw/anim_back2") // Replace with your video file name
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.horizontalGradient(
-                    colors = gradientColors
-                )
-            )
+            .background(Color.Black)
     ) {
+        AndroidView(
+            factory = { context ->
+                VideoView(context).apply {
+                    setVideoURI(videoUri)
+                    start()
+                    setOnPreparedListener { mp ->
+                        mp.isLooping = true
+                    }
+                }
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(scaleX = 1.5f, scaleY = 2.7f)
+        )
+
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -112,7 +118,8 @@ fun ChatsScreen(navController: NavController) {
                         Text(
                             "Chats",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 24.sp
+                            fontSize = 24.sp,
+                            color = Color.White
                         )
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -121,7 +128,7 @@ fun ChatsScreen(navController: NavController) {
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(
-                                imageVector = Icons.Filled.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
                                 tint = Color.White
                             )
@@ -166,8 +173,7 @@ fun ChatsScreen(navController: NavController) {
 
 @Composable
 fun ChatItemCard(chatData: ChatData, navController: NavController) {
-
-        val isHovered by remember { mutableStateOf(false) }
+    val isHovered by remember { mutableStateOf(false) }
     val animatedBorder = animateBorderStroke(
         targetThickness = if (isHovered) 4.dp else 2.dp,
         targetColor = if (isHovered) Color.White else Color.LightGray
@@ -204,9 +210,8 @@ fun ChatItemCard(chatData: ChatData, navController: NavController) {
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Assuming you have an AsyncImage component to load the avatar
             AsyncImage(
-                model = "https://picsum.photos/200/300", // Replace with actual avatar URL
+                model = "https://picsum.photos/200/300",
                 contentDescription = "Avatar",
                 modifier = Modifier
                     .size(64.dp)
@@ -233,11 +238,7 @@ fun ChatItemCard(chatData: ChatData, navController: NavController) {
 
             Spacer(modifier = Modifier.padding(8.dp))
 
-
-
-                val unreadMessages = chatData.messages.count {
-                true// Replace with actual unread message logic
-                }
+            val unreadMessages = chatData.messages.count { true }
             if (unreadMessages > 0) {
                 val infiniteTransition = rememberInfiniteTransition()
                 val translationY by infiniteTransition.animateFloat(
@@ -286,13 +287,13 @@ fun animateBorderStroke(
     )
     return BorderStroke(thickness, color)
 }
+
 @Composable
 fun NewChatDialog(onDismiss: () -> Unit, onAddChat: (ChatData) -> Unit) {
     var members by remember { mutableStateOf("") }
     var messageContent by remember { mutableStateOf("") }
     var sender by remember { mutableStateOf("") }
 
-    // Dialog with a pulsating background
     val infiniteTransition = rememberInfiniteTransition()
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,

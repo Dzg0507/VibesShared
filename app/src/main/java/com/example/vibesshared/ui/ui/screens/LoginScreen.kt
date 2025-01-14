@@ -40,7 +40,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.vibesshared.R
-import com.example.vibesshared.ui.ui.navigation.Screen
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
 import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch

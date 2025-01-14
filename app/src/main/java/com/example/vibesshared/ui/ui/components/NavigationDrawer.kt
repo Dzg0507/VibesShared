@@ -1,6 +1,5 @@
 package com.example.vibesshared.ui.ui.components
 
-import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -23,14 +22,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,14 +44,37 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.vibesshared.R
-import com.example.vibesshared.ui.ui.navigation.Screen
+import com.example.vibesshared.ui.ui.screens.Screen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+
+@Composable
+fun AnimatedLottieButton(onClick: () -> Unit) {
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.compass)) // Replace R.raw.your_animation with your animation
+    val progress by animateLottieCompositionAsState(
+        composition,
+        iterations = LottieConstants.IterateForever, // Use if you want an infinite animation
+        isPlaying = true
+    )
+
+    LottieAnimation(
+        composition,
+        progress = { progress },
+        modifier = Modifier
+            .size(100.dp) // Adjust size as needed
+            .clickable { onClick() }
+    )
+}
 
 @Composable
 fun ColorSplashEffect(
@@ -85,7 +104,7 @@ fun ColorSplashEffect(
             val center = Offset(size.width / 2, size.height / 2)
             val currentSize = animatableSize.value
 
-            for (i in 0 until colors.size) {
+            for (i in colors.indices) {
                 val angle = (i.toFloat() / colors.size) * 360f
                 val color = colors[i]
 
@@ -103,17 +122,18 @@ fun ColorSplashEffect(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavigationDrawer(
-    navController: NavController,
-    drawerState: DrawerState = rememberDrawerState(initialValue = DrawerValue.Closed),
+    navController: NavHostController,
+    drawerState: DrawerState,
+    gesturesEnabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val items = listOf(
         Screen.Profile,
         Screen.Settings,
-        Screen.AboutUs
+        Screen.AboutUs,
+        //Screen.ArrowScreen remove this to remove from drawer
     )
 
     var isLogoInteractive by remember { mutableStateOf(true) }
@@ -144,7 +164,7 @@ fun NavigationDrawer(
     val logoAnimatableX = remember { Animatable(0f) }
     val logoAnimatableY = remember { Animatable(0f) }
     val drawerWidth = 300.dp
-    val logoSize = 200.dp
+    val logoSize = 100.dp
     val collisionSize = 250.dp
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
@@ -219,14 +239,9 @@ fun NavigationDrawer(
         }
     }
 
-    LaunchedEffect(navController) {
-        navController.addOnDestinationChangedListener { _, destination, _ ->
-            Log.d("NavigationDrawer", "Navigated to: ${destination.route}")
-        }
-    }
-
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = gesturesEnabled,
         drawerContent = {
             ModalDrawerSheet(
                 modifier = Modifier
@@ -274,7 +289,12 @@ fun NavigationDrawer(
                                 colors = NavigationDrawerItemDefaults.colors()
                             )
                         }
-
+                        AnimatedLottieButton(onClick = {
+                            scope.launch {
+                                drawerState.close() // Close the drawer
+                                navController.navigate("arrow_screen") // Navigate to ArrowScreen
+                            }
+                        })
                         Spacer(modifier = Modifier.weight(1f))
 
                         if (showSplashButton) {
@@ -293,7 +313,7 @@ fun NavigationDrawer(
 
                         if (!showColorSplash) {
                             Image(
-                                painter = painterResource(id = R.drawable.logo1),
+                                painter = painterResource(id = R.drawable.my_profile_icon),
                                 contentDescription = "Logo",
                                 modifier = Modifier
                                     .size(logoSize)

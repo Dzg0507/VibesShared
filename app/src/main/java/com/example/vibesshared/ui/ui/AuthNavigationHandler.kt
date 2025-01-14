@@ -8,7 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
-import com.example.vibesshared.ui.ui.navigation.Screen
+import com.example.vibesshared.ui.ui.screens.Screen
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
 
 @Composable
@@ -24,12 +24,12 @@ fun AuthNavigationHandler(
         Screen.ForgotPassword.route
     )
 
-    LaunchedEffect(authState) {
-        if (!navigated && currentRoute != Screen.Home.route) {
+    LaunchedEffect(authState, currentRoute) {
+        if (!navigated) {
             when (authState) {
                 is AuthState.Authenticated -> {
                     if (isAuthScreen) {
-                        Log.d("AuthNavigation", "AuthNavigationHandler: Navigating to Home from Auth screen")
+                        Log.d("AuthNavigation", "Navigating to Home from Auth screen")
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
@@ -37,10 +37,10 @@ fun AuthNavigationHandler(
                     }
                 }
                 is AuthState.Unauthenticated -> {
-                    if (!isAuthScreen) {
-                        Log.d("AuthNavigation", "AuthNavigationHandler: Navigating to Login from Content screen")
+                    if (!isAuthScreen && currentRoute != null && currentRoute != Screen.Splash.route) {
+                        Log.d("AuthNavigation", "Navigating to Login from Content screen: $currentRoute")
                         navController.navigate(Screen.Login.route) {
-                            popUpTo(0) { inclusive = true }
+                            popUpTo(0)
                         }
                         navigated = true
                     }
@@ -49,6 +49,7 @@ fun AuthNavigationHandler(
             }
         }
     }
+
     LaunchedEffect(Unit) {
         navigated = false
     }

@@ -92,7 +92,7 @@ val cardColors = listOf(
 )
 
 @Composable
-fun FriendsScreen(navController: NavHostController) {
+fun FriendsScreen(navController: NavHostController, paddingValues: PaddingValues) {
     var expandedFriend by remember { mutableStateOf<Friend?>(null) }
     val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
@@ -118,12 +118,13 @@ fun FriendsScreen(navController: NavHostController) {
                     endX = currentOffset
                 )
             )
+            .padding(paddingValues) // Apply Scaffold padding here
     ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            contentPadding = PaddingValues(top = 70.dp, bottom = 60.dp)
+            contentPadding = PaddingValues(top = 70.dp, bottom = 60.dp) // You might need to adjust these values
         ) {
             items(friends) { friend ->
                 FriendCard(
