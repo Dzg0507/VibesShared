@@ -1,15 +1,13 @@
 
-
+import org.gradle.kotlin.dsl.android
 
 plugins {
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.0"
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    kotlin("plugin.serialization") version "1.8.21"
     id("com.google.gms.google-services")
-    id("com.github.fkorotkov.libraries") version "1.1"
-
-
+    alias(libs.plugins.compose.compiler)
+    id ("kotlin-parcelize")
+    id("kotlin-kapt")
 
 }
 
@@ -19,8 +17,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.vibesshared"
-        minSdk = 28
-        //noinspection EditedTargetSdkVersion
+        minSdk = 34
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -29,12 +26,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-    }
-    buildFeatures {
-        compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "2.1.0" // Replace with your compose version
     }
 
     buildTypes {
@@ -45,91 +36,119 @@ android {
                 "proguard-rules.pro"
             )
         }
+    }
 
-        compileOptions {
-            sourceCompatibility = JavaVersion.VERSION_20
-            targetCompatibility = JavaVersion.VERSION_20
-        }
-        kotlinOptions {
-            jvmTarget = "20"
-        }
-        buildFeatures {
-            compose = true
-        }
-        composeOptions {
-            kotlinCompilerExtensionVersion = "2.0.0" // Replace with your compose version(2.0) // Replace with your compose version
-        }
-        packaging {
-            resources {
-                excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            }
-        }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 
-        dependencies {
-            implementation(libs.androidx.core.ktx)
-            implementation(libs.androidx.lifecycle.runtime.ktx)
-            implementation(libs.androidx.activity.compose)
+    buildFeatures {
+        compose = true
+        viewBinding = true
+    }
 
-            // Use the Compose BOM to manage versions
-
-            implementation(platform(libs.androidx.compose.bom.v20241201))
-            implementation(libs.androidx.compose.material3) // Include Material 3
-
-            // For navigation
-            implementation(libs.androidx.navigation.compose)
-
-
-            // Material icons (core and extended)
-            implementation(libs.androidx.material.icons.core)
-            implementation(libs.material.icons.extended)
-            implementation(libs.androidx.material3.android)
-            implementation(libs.androidx.foundation.android)
-            implementation(libs.androidx.ui.tooling)
-            implementation(libs.androidx.espresso.contrib)
-            implementation(libs.androidx.animation.core.android)
-            implementation(libs.androidx.animation.android)
-            implementation(libs.firebase.crashlytics.buildtools)
-            implementation(libs.androidx.lifecycle.viewmodel.ktx)
-            implementation(libs.kotlin.stdlib)
-            implementation(libs.androidx.foundation.android)
-
-
-            // Your test dependencies
-            testImplementation(libs.junit)
-            androidTestImplementation(libs.androidx.junit)
-            androidTestImplementation(libs.androidx.espresso.core)
-            androidTestImplementation(platform(libs.androidx.compose.bom.v20241201))
-            androidTestImplementation(libs.ui.test.junit4)
-            debugImplementation(libs.ui.tooling)
-            debugImplementation(libs.ui.test.manifest)
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.glide) // Or latest version
-            annotationProcessor(libs.glide.compiler)
-            implementation(libs.androidx.media3.exoplayer) // Or latest version
-            implementation(libs.androidx.media3.ui)
-            implementation(libs.firebase.database.ktx)
-            implementation(libs.slf4j.api)
-            implementation(libs.slf4j.simple)
-            implementation(libs.androidx.compose.material3)
-            implementation(libs.coil.compose)
-            implementation(libs.kotlinx.coroutines.play.services)
-            implementation(libs.lottie)
-            implementation(libs.lottie.compose)
-            implementation(libs.androidx.datastore.preferences)
-            implementation(libs.kotlin.reflect)
-            implementation(libs.coil.compose) // Or latest version
-            implementation(platform(libs.firebase.bom))
-            implementation(libs.firebase.auth.ktx)// Or latest version
-            implementation(libs.coil.network.okhttp)
-            implementation(libs.coil.kt.coil.compose)
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.7.6" // Use a compatible version
+    }
 
 
 
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    buildToolsVersion = "35"
+    dependenciesInfo {
+        includeInApk = true
+        includeInBundle = true
+    }
 }
+
 dependencies {
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.androidx.animation.core.android)
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.activity:activity-compose:1.10.0")
+    implementation (libs.kotlin.reflect)
+    implementation ("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7") // Or latest version
+    implementation("androidx.compose.runtime:runtime:1.7.6") // Or latest Compose version
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.activity:activity-ktx:1.10.0") // Or latest
+    implementation("androidx.fragment:fragment-ktx:1.8.5")
+    implementation("androidx.navigation:navigation-compose:2.8.5") // Or latest Navigation Compose version
+    implementation("com.google.firebase:firebase-auth-ktx:23.1.0")
+    implementation("com.google.firebase:firebase-database-ktx:21.0.0")
+
+    // Compose BOM (Bill of Materials) - Use a single BOM
+    implementation(platform("androidx.compose:compose-bom:2025.01.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.compose.material:material-icons-extended")
+
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.8.5") // Or latest Navigation Compose version
+
+
+    implementation(libs.androidx.datastore.core.android)
+    implementation(libs.androidx.datastore.preferences.core.jvm)
+
+    // Other Compose dependencies
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Testing dependencies
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2025.01.00")) // Use the same BOM
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.8.0")) // Use latest BoM
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+
+    // Google Play Services
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
+
+    // Lottie
+    implementation("com.airbnb.android:lottie-compose:6.3.0")
+
+    // Coil
+    implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Media3 (ExoPlayer)
+    implementation("androidx.media3:media3-exoplayer:1.5.1")
+    implementation("androidx.media3:media3-ui:1.5.1")
+
+    // Retrofit and Gson
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // Accompanist
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+
+    // Kotlin Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.1")
+    implementation("androidx.datastore:datastore-preferences:1.1.2")
+    implementation ("com.google.dagger:hilt-android:2.44")
+    // For Jetpack Compose:
+    implementation ("androidx.hilt:hilt-navigation-compose:1.2.0")
 }

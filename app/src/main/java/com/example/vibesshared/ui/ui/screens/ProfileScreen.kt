@@ -61,7 +61,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -74,6 +73,7 @@ import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
 import com.example.vibesshared.ui.ui.viewmodel.ProfileViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
@@ -222,7 +222,7 @@ private fun DrawScope.drawComet(animationProgress: Float) {
     // Comet Tail: Elongated and more particles
     val tailLength = screenWidth * 0.2f  // Increased tail length
     val numTailParticles = 60 // More particles
-    val cometAngle = Math.atan2((endY - startY).toDouble(), (endX - startX).toDouble()).toFloat()
+    val cometAngle = atan2((endY - startY).toDouble(), (endX - startX).toDouble()).toFloat()
 
     for (i in 0 until numTailParticles) {
         val particleProgress = i.toFloat() / numTailParticles
@@ -341,9 +341,7 @@ fun ProfilePicture(firstName: String?, lastName: String?, profilePictureUri: Uri
 fun ProfileScreen(
     navController: NavController,
     authViewModel: AuthViewModel,
-    profileViewModel: ProfileViewModel = viewModel(
-        factory = ProfileViewModel.provideFactory(context = LocalContext.current)
-    ),
+    profileViewModel: ProfileViewModel = viewModel(),
     name: String = "Profile",
 ) {
     var isFirstNameEditing by remember { mutableStateOf(false) }
@@ -368,8 +366,8 @@ fun ProfileScreen(
         profilePictureUri = uri
     }
 
-    LaunchedEffect(key1 = userProfileState.value) {
-        userProfile = userProfileState.value
+    LaunchedEffect(key1 = true) { // Triggered only once when the composable is first composed
+        profileViewModel.fetchUserProfile()
         userProfile?.let {
             editedFirstName = it.firstName ?: ""
             editedLastName = it.lastName ?: ""
@@ -611,7 +609,4 @@ private enum class TextFieldType {
     EMAIL,
     BIO
 }
-
-
-
 

@@ -1,6 +1,5 @@
 package com.example.vibesshared.ui.ui.screens
 
-
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -19,6 +18,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -73,7 +73,7 @@ fun ArrowScreen(navController: NavHostController) {
     var currentLocation by remember { mutableStateOf<Location?>(null) }
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     var displayAddress by remember { mutableStateOf<String?>(null) }
-    var distanceToTarget by remember { mutableStateOf<String?>(null) } // Store distance as a string
+    var distanceToTarget by remember { mutableStateOf<String?>(null) }
 
     // Sensor-related variables
     val rotationMatrix = FloatArray(9)
@@ -101,7 +101,7 @@ fun ArrowScreen(navController: NavHostController) {
     fun calculateDistance(current: Location?, target: LatLng?): String? {
         if (current == null || target == null) return null
 
-        val results: FloatArray = FloatArray(1)
+        val results = FloatArray(1)
         Location.distanceBetween(
             current.latitude, current.longitude,
             target.latitude, target.longitude,
@@ -116,11 +116,11 @@ fun ArrowScreen(navController: NavHostController) {
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions: Map<String, Boolean> ->
+    ) { permissions ->
         if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         ) {
-            requestLocationUpdates(fusedLocationClient, context) { location: Location ->
+            requestLocationUpdates(fusedLocationClient, context) { location ->
                 currentLocation = location
                 if (targetLocation != null) {
                     coroutineScope.launch {
@@ -198,6 +198,7 @@ fun ArrowScreen(navController: NavHostController) {
                     SensorManager.getOrientation(rotationMatrix, orientationAngles)
                     val azimuth = Math.toDegrees(orientationAngles[0].toDouble()).toFloat()
                     compassBearing = azimuth
+                    Log.d("Compass", "Compass Bearing: $compassBearing")
                 }
             }
 
@@ -271,17 +272,22 @@ fun ArrowScreen(navController: NavHostController) {
             0f
         }
 
+
         when {
             targetLocation != null && currentLocation != null -> {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(
-                        painter = painterResource(id = R.drawable.finger_up_tp),
-                        contentDescription = "Navigation Arrow",
-                        modifier = Modifier
-                            .size(250.dp)
-                            .rotate(finalBearing),
-                        contentScale = ContentScale.Fit
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        // Main arrow pointing to the target location
+                        Image(
+                            painter = painterResource(id = R.drawable.finger_up_tp),
+                            contentDescription = "Navigation Arrow",
+                            modifier = Modifier
+                                .size(250.dp)
+                                .rotate(finalBearing),
+                            contentScale = ContentScale.Fit
+
+                        )
+                    }
                     displayAddress?.let {
                         Text(it, modifier = Modifier.padding(top = 8.dp))
                     }

@@ -1,5 +1,6 @@
 package com.example.vibesshared.ui.ui.screens
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -57,17 +58,12 @@ fun LoginScreen(
     val authState by authViewModel.authState.collectAsState()
     var errorMessage by remember { mutableStateOf("") }
 
-
-// In your LoginScreen.kt
     LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Authenticated -> {
-                navController.navigate(Screen.Home.route) {
-                    popUpTo(Screen.Login.route) { inclusive = true }
-                }
+                // Removed navigation logic from here
             }
             is AuthState.Error -> {
-                // Handle error state
                 isLoading = false
                 errorMessage = (authState as AuthState.Error).message
             }
@@ -77,7 +73,6 @@ fun LoginScreen(
             AuthState.Unauthenticated -> {
                 isLoading = false
             }
-             // Add this else branch to make it exhaustive
         }
     }
 
@@ -88,16 +83,14 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Logo
         Image(
-            painter = painterResource(id = R.drawable.ic_home), // Make sure to add your logo
+            painter = painterResource(id = R.drawable.logo1),
             contentDescription = "App Logo",
             modifier = Modifier
                 .size(120.dp)
                 .padding(bottom = 32.dp)
         )
 
-        // Email field
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
@@ -111,7 +104,6 @@ fun LoginScreen(
             singleLine = true
         )
 
-        // Password field
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
@@ -133,7 +125,6 @@ fun LoginScreen(
             singleLine = true
         )
 
-        // Error message
         AnimatedVisibility(
             visible = authState is AuthState.Error,
             enter = fadeIn(),
@@ -148,7 +139,6 @@ fun LoginScreen(
             }
         }
 
-        // Login button
         Button(
             onClick = {
                 isLoading = true
@@ -172,17 +162,23 @@ fun LoginScreen(
             Text("Login")
         }
 
-        // Create account button
+        // Navigate to Create Account Screen
         TextButton(
-            onClick = { navController.navigate(Screen.CreateAccount.route) },
+            onClick = {
+                Log.d("LoginScreen", "Create New Account button clicked")
+                navController.navigate(Screen.CreateAccount.route)
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Create New Account")
         }
 
-        // Forgot password button
+        // Navigate to Forgot Password Screen
         TextButton(
-            onClick = { navController.navigate(Screen.ForgotPassword.route) },
+            onClick = {
+                Log.d("LoginScreen", "Forgot Password button clicked")
+                navController.navigate(Screen.ForgotPassword.route)
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Forgot Password?")

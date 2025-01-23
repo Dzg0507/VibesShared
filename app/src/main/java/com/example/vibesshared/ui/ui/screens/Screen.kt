@@ -1,4 +1,4 @@
-package com.example.vibesshared.ui.ui.screens // Correct package!!!
+package com.example.vibesshared.ui.ui.screens
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -29,6 +29,10 @@ sealed class Screen(
     data object ForgotPassword : Screen("forgot_password")
     data object CreateAccount : Screen("create_account")
     data object Splash : Screen("splash")
+    data object Messaging : Screen("messaging/{chatId}", Icons.Default.People, "Messaging") {
+        const val CHAT_ID_KEY = "chatId"
+        fun createRoute(chatId: String) = "messaging/$chatId"
+    }
 
     companion object {
         fun bottomNavItems() = listOf(Home, Friends, Chats)

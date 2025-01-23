@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -60,10 +62,12 @@ import kotlin.random.Random
 
 @Composable
 fun AnimatedLottieButton(onClick: () -> Unit) {
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.compass)) // Replace R.raw.your_animation with your animation
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.compass)
+    )
     val progress by animateLottieCompositionAsState(
         composition,
-        iterations = LottieConstants.IterateForever, // Use if you want an infinite animation
+        iterations = LottieConstants.IterateForever,
         isPlaying = true
     )
 
@@ -71,7 +75,7 @@ fun AnimatedLottieButton(onClick: () -> Unit) {
         composition,
         progress = { progress },
         modifier = Modifier
-            .size(100.dp) // Adjust size as needed
+            .size(100.dp)
             .clickable { onClick() }
     )
 }
@@ -127,13 +131,21 @@ fun NavigationDrawer(
     navController: NavHostController,
     drawerState: DrawerState,
     gesturesEnabled: Boolean = true,
+    drawerWidthFraction: Float = 0.8f,
     content: @Composable () -> Unit
+
 ) {
+    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val drawerWidth = screenWidth * drawerWidthFraction
+
     val items = listOf(
         Screen.Profile,
         Screen.Settings,
-        Screen.AboutUs,
-        //Screen.ArrowScreen remove this to remove from drawer
+        Screen.AboutUs
+        // Remove ArrowScreen if you don't want it in the drawer
     )
 
     var isLogoInteractive by remember { mutableStateOf(true) }
@@ -159,15 +171,10 @@ fun NavigationDrawer(
         )
     )
 
-    val scope = rememberCoroutineScope()
-
     val logoAnimatableX = remember { Animatable(0f) }
     val logoAnimatableY = remember { Animatable(0f) }
-    val drawerWidth = 300.dp
     val logoSize = 100.dp
     val collisionSize = 250.dp
-    val density = LocalDensity.current
-    val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
 
     var showColorSplash by remember { mutableStateOf(false) }
@@ -253,7 +260,8 @@ fun NavigationDrawer(
                                 isLogoBouncing = !isLogoBouncing
                             }
                         }
-                    )
+                    ),
+                drawerContainerColor = MaterialTheme.colorScheme.background
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     ColorSplashEffect(
@@ -274,15 +282,14 @@ fun NavigationDrawer(
                                 selected = false,
                                 onClick = {
                                     scope.launch {
+                                        drawerState.close()
                                         navController.navigate(item.route) {
-                                            popUpTo(Screen.Home.route) {
-                                                inclusive = true
+                                            popUpTo(navController.graph.findStartDestination().id) {
                                                 saveState = true
                                             }
                                             launchSingleTop = true
                                             restoreState = true
                                         }
-                                        drawerState.close()
                                     }
                                 },
                                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
@@ -291,10 +298,11 @@ fun NavigationDrawer(
                         }
                         AnimatedLottieButton(onClick = {
                             scope.launch {
-                                drawerState.close() // Close the drawer
-                                navController.navigate("arrow_screen") // Navigate to ArrowScreen
+                                drawerState.close()
+                                navController.navigate(Screen.ArrowScreen.route)
                             }
                         })
+
                         Spacer(modifier = Modifier.weight(1f))
 
                         if (showSplashButton) {

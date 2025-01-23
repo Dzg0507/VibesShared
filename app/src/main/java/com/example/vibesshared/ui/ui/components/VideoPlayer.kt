@@ -1,47 +1,56 @@
 package com.example.vibesshared.ui.ui.components
 
-import android.app.Activity
-import android.view.Window
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.view.WindowCompat.setDecorFitsSystemWindows
-import androidx.core.view.WindowInsetsControllerCompat
-import androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-import com.example.vibesshared.R
-import com.example.vibesshared.ui.ui.screens.setSystemBars
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 
+@UnstableApi
 @Composable
-fun SplashScreen(onSplashFinished: () -> Unit) {
-    val activity = LocalContext.current as Activity // Cast to Activity
-
-    LaunchedEffect(Unit) {
-        activity.window?.also { window -> setSystemBars(window, true) }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            activity.window?.also { window -> setSystemBars(window, false) }
+fun VideoPlayer(modifier: Modifier = Modifier, videoResId: Int, onVideoEnd: () -> Unit) {
+    val context = LocalContext.current
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            val mediaItem = MediaItem.fromUri("android.resource://${context.packageName}/$videoResId")
+            setMediaItem(mediaItem)
+            prepare()
+            playWhenReady = true
+            repeatMode = ExoPlayer.REPEAT_MODE_OFF
         }
     }
 
-    VideoPlayer(
-        modifier = Modifier.fillMaxSize(),
-        videoResId = R.raw.paint_anim,
-        onVideoEnd = onSplashFinished
+    DisposableEffect(exoPlayer) {
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == ExoPlayer.STATE_ENDED) {
+                    onVideoEnd()
+                }
+            }
+        }
+        exoPlayer.addListener(listener)
+
+        onDispose {
+            exoPlayer.removeListener(listener)
+            exoPlayer.release()
+        }
+    }
+
+    AndroidView(
+        factory = { ctx ->
+            PlayerView(ctx).apply {
+                player = exoPlayer
+                useController = false
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+            }
+        },
+        modifier = modifier
     )
-}
-
-@Composable
-fun VideoPlayer(modifier: Modifier, videoResId: Int, onVideoEnd: () -> Unit) {
-    LocalContext.current}
-
-fun setSystemBars(window: Window, hide: Boolean) {
-    setDecorFitsSystemWindows(window, !hide)
-    val insetsController = WindowInsetsControllerCompat(window, window.decorView)
-    insetsController.systemBarsBehavior =
-        if (hide) BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE else WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
 }

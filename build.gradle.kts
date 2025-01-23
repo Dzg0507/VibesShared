@@ -11,6 +11,8 @@ plugins {
     id("com.google.gms.google-services") version "4.4.2" apply false
     id("com.autonomousapps.dependency-analysis") version "2.6.1" apply false
     id("com.github.ben-manes.versions") version "0.51.0" apply false
+    alias(libs.plugins.compose.compiler) apply false
+
 }
 
 buildscript {
@@ -21,5 +23,6 @@ buildscript {
     dependencies {
         classpath(libs.gradle) // Or latest
         classpath(libs.google.services)
+
     }
 }

@@ -57,7 +57,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -77,8 +76,7 @@ data class Story(
 
 data class Post(
     val id: Int,
-    val userName: String,
-    val userImage: String,
+    val user: UserProfile,
     val postText: String,
     val postImage: String? = null,
     val timestamp: String,
@@ -90,13 +88,13 @@ data class Post(
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun HomeScreen(
-    navController: NavController,
     authViewModel: AuthViewModel,
+    navController: NavController,
+    modifier: Modifier = Modifier,
     profileViewModel: ProfileViewModel = viewModel(
-        factory = ProfileViewModel.provideFactory(context = LocalContext.current)
     )
 ) {
-    val userProfile by profileViewModel.userProfile.collectAsState()
+    val userProfile by profileViewModel.userProfile.collectAsState() // Correctly collect the StateFlow
     var isLoading by remember { mutableStateOf(true) }
     val vibrantPostColors = remember { List(7) { Color(Random.nextLong(0xFFFFFFFF)).copy(alpha = 0.8f) } }
 
@@ -106,10 +104,10 @@ fun HomeScreen(
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
-            .background(MaterialTheme.colorScheme.background),
+                .background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(top = 0.dp, bottom = 60.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -216,7 +214,7 @@ fun StoryItem(story: Story) {
 fun generateStories(count: Int): List<Story> {
     val stories = mutableListOf<Story>()
     for (i in 1..count) {
-        stories.add(Story("https://via.placeholder.com/150", "User$i"))
+        stories.add(Story("https://picsum.photos/200/300", "User$i"))
     }
     return stories
 }
@@ -291,7 +289,7 @@ fun UserProfileSection(profile: UserProfile) {
             profile.profilePictureUri?.let { uri ->
                 Spacer(modifier = Modifier.height(8.dp))
                 AsyncImage(
-                    model = "https://picsum.photos/200/300",
+                    model = uri,
                     contentDescription = "Profile Picture",
                     modifier = Modifier
                         .size(100.dp)
@@ -301,8 +299,6 @@ fun UserProfileSection(profile: UserProfile) {
         }
     }
 }
-
-
 
 @Composable
 fun PostCard(post: Post, backgroundColor: Color) {
@@ -328,7 +324,7 @@ fun PostCard(post: Post, backgroundColor: Color) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AsyncImage(
-                    model = post.userImage,
+                    model = post.user.profilePictureUri,
                     contentDescription = "Profile Image",
                     modifier = Modifier
                         .size(40.dp)
@@ -336,7 +332,7 @@ fun PostCard(post: Post, backgroundColor: Color) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
-                    Text(post.userName, fontWeight = FontWeight.Bold)
+                    Text(post.user.firstName, fontWeight = FontWeight.Bold)
                     Text(post.timestamp, fontSize = 12.sp, color = Color.Gray)
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -391,17 +387,27 @@ fun PostActionButton(icon: ImageVector, text: String, onClick: () -> Unit) {
     }
 }
 
-
 fun generatePosts(count: Int): List<Post> {
+    val sampleUsers = List(5) { index ->
+        UserProfile(
+            userId = "userId$index",
+            firstName = "FirstName$index",
+            lastName = "LastName$index",
+            email = "user$index@example.com",
+            bio = "Bio for user $index",
+            profilePictureUri = "https://picsum.photos/id/${index + 10}/200/300"
+        )
+    }
+
     val posts = mutableListOf<Post>()
     for (i in 1..count) {
+        val user = sampleUsers[Random.nextInt(sampleUsers.size)]
         posts.add(
             Post(
                 id = i,
-                userName = "User$i",
-                userImage = "https://picsum.photos/200/300",
+                user = user,
                 postText = "Post $i content. This is a longer post to test the layout and wrapping of the text content.",
-                postImage = if (i % 2 == 0) "https://picsum.photos/200/300" else null,
+                postImage = if (i % 2 == 0) "https://picsum.photos/400/300" else null,
                 timestamp = "${i * 10} min ago"
             )
         )
