@@ -79,8 +79,7 @@
                                             <option name="values">
                                               <map>
                                                 <entry key="color" value="000000" />
-                                                <entry key="imagePath" value="C:\Users\devin\AndroidStudioProjects\VibesShared\app\src\main\res\drawable\logo_splash.png" />
-                                                <entry key="scalingPercent" value="114" />
+                                                <entry key="imagePath" value="C:\Users\devin\Desktop\20230408_115422.jpg" />
                                               </map>
                                             </option>
                                           </PersistentState>
@@ -108,12 +107,6 @@
                                           </PersistentState>
                                         </value>
                                       </entry>
-                                    </map>
-                                  </option>
-                                  <option name="values">
-                                    <map>
-                                      <entry key="backgroundAssetType" value="COLOR" />
-                                      <entry key="backgroundColor" value="0c0c0c" />
                                     </map>
                                   </option>
                                 </PersistentState>
