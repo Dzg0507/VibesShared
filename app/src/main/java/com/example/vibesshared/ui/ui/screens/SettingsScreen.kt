@@ -28,18 +28,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.vibesshared.ui.ui.navigation.Screen
 import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
-import com.example.vibesshared.ui.ui.viewmodel.ProfileViewModel
+
 
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    authViewModel: AuthViewModel,
-    profileViewModel: ProfileViewModel,
-    name: String,
-    settingsName: String,
-    aboutName: String,
     onDrawerWidthChange: (Float) -> Unit,
     onBottomBarWidthChange: (Float) -> Unit,
     initialDrawerWidthFraction: Float,
@@ -53,6 +50,8 @@ fun SettingsScreen(
     var allowDirectMessages by remember { mutableStateOf(true) }
     var drawerWidthFraction by remember { mutableFloatStateOf(initialDrawerWidthFraction) }
     var bottomBarWidthFraction by remember { mutableFloatStateOf(initialBottomBarWidthFraction) }
+
+    val authViewModel: AuthViewModel = hiltViewModel()
 
     Column(
         modifier = Modifier
@@ -143,9 +142,9 @@ fun SettingsScreen(
         // Logout button
         Button(
             onClick = {
-                authViewModel.logout(profileViewModel)
+                authViewModel.logout()
                 navController.navigate(Screen.Login.route) {
-                    popUpTo(0)
+                    popUpTo(Screen.Home.route) { inclusive = true }
                 }
             },
             modifier = Modifier
@@ -189,4 +188,3 @@ private fun SettingItem(
         )
     }
 }
-

@@ -31,4 +31,17 @@
     <color name="LimeGreen">#FF7FFF00</color>
     <color name="Teal200">#FF03DAC5</color>
 
-</resources>
+    <!-- Base Cyberpunk Colors -->
+    <color name="neon_green">#FF00FF41</color>
+    <color name="neon_red">#FFFF003C</color>
+    <color name="deep_black">#FF0B0B0B</color>
+    <color name="night_blue">#FF0B1A2F</color>
+    <color name="neon_purple">#FF9D00FF</color>
+
+    <!-- Additional Colors Used in ProfileScreen -->
+    <color name="neon_blue">#FF00F6FF</color>
+    <color name="neon_yellow">#FFFFF700</color>
+    <color name="neon_pink">#FFFF0099</color>
+    <color name="cyber_dark_3">#FF1A1A2E</color>
+    </resources>
+

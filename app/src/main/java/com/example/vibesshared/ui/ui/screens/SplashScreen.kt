@@ -1,14 +1,15 @@
 package com.example.vibesshared.ui.ui.screens
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.view.Window
-import androidx.activity.compose.LocalActivity
-import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -27,18 +28,23 @@ fun setSystemBars(window: Window, hide: Boolean) {
     }
 }
 
-@OptIn(UnstableApi::class)
+@UnstableApi
 @Composable
 fun SplashScreen(onTimeout: () -> Unit) {
-    val activity = LocalActivity.current as Activity // Cast to Activity
+    val context = LocalContext.current
+    val activity = context.findActivity()
 
-    LaunchedEffect(Unit) {
-        activity.window?.also { window -> setSystemBars(window, true) }
+    LaunchedEffect(activity) {
+        activity?.window?.let { window ->
+            setSystemBars(window, true)
+        }
     }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(activity) {
         onDispose {
-            activity.window?.also { window -> setSystemBars(window, false) }
+            activity?.window?.let { window ->
+                setSystemBars(window, false)
+            }
         }
     }
 
@@ -47,4 +53,10 @@ fun SplashScreen(onTimeout: () -> Unit) {
         videoResId = R.raw.char_splash,
         onVideoEnd = onTimeout
     )
+}
+
+fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

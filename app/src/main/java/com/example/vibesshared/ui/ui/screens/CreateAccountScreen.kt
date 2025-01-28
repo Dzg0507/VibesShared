@@ -1,6 +1,5 @@
 package com.example.vibesshared.ui.ui.screens
 
-import com.example.vibesshared.ui.ui.components.UserProfile
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -15,7 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -45,8 +44,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.vibesshared.R
+import com.example.vibesshared.ui.ui.components.UserProfile
+import com.example.vibesshared.ui.ui.navigation.Screen
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
 import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
@@ -55,7 +57,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun CreateAccountScreen(
     navController: NavController,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -100,7 +102,7 @@ fun CreateAccountScreen(
                 title = { Text("Create Account") },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.Filled.ArrowBack, "Back")
                     }
                 }
             )
@@ -116,7 +118,7 @@ fun CreateAccountScreen(
         ) {
             // Logo
             Image(
-                painter = painterResource(id = R.drawable.my_profile_icon),
+                painter = painterResource(id = R.drawable.logo1),
                 contentDescription = "App Logo",
                 modifier = Modifier
                     .size(100.dp)
@@ -221,7 +223,7 @@ fun CreateAccountScreen(
                             lastName = lastName,
                             email = email,
                             bio = "",
-                            profilePictureUri = null)
+                            profilePicture = null)
                         scope.launch {
                             authViewModel.createAccount(email, password, newUserProfile)
                         }

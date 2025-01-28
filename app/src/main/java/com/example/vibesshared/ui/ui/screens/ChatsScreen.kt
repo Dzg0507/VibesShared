@@ -31,9 +31,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -61,11 +62,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.vibesshared.ui.ui.components.UserProfile
@@ -79,11 +80,12 @@ import com.example.vibesshared.ui.ui.viewmodel.ChatsViewModel
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
+// Remove @AndroidEntryPoint from here
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatsScreen(navController: NavController, modifier: Modifier = Modifier) {
-    val viewModel: ChatsViewModel = viewModel(factory = ChatsViewModel.provideFactory(LocalContext.current))
+    val viewModel: ChatsViewModel = hiltViewModel()
     val chats by viewModel.chats.collectAsState()
     var showUserSelectionDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
@@ -127,7 +129,7 @@ fun ChatsScreen(navController: NavController, modifier: Modifier = Modifier) {
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = Icons.Filled.ArrowBack,
                                 contentDescription = "Back",
                                 tint = Color.White
                             )
@@ -341,7 +343,7 @@ fun ChatItemCard(
 
 @Composable
 fun UserSelectionDialog(onUserSelected: (String) -> Unit, onDismiss: () -> Unit) {
-    val viewModel: ChatsViewModel = viewModel()
+    val viewModel: ChatsViewModel = hiltViewModel()
     val users by viewModel.users.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
 
@@ -362,7 +364,8 @@ fun UserSelectionDialog(onUserSelected: (String) -> Unit, onDismiss: () -> Unit)
                         searchQuery = it
                         viewModel.searchUsers(it)
                     },
-                    label = { Text("Search") }
+                    label = { Text("Search") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyColumn {
@@ -394,4 +397,3 @@ fun UserItem(user: UserProfile, onUserSelected: (String) -> Unit) {
         Text(text = "${user.firstName} ${user.lastName}")
     }
 }
-

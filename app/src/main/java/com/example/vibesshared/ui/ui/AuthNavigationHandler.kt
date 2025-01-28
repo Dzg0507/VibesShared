@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
-import com.example.vibesshared.ui.ui.screens.Screen
+import com.example.vibesshared.ui.ui.navigation.Screen
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
 
 @Composable
@@ -43,7 +43,7 @@ fun AuthNavigationHandler(
                     }
                 }
             }
-            else -> {}
+            else -> {null}
         }
     }
 }

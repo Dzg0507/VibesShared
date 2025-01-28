@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,15 +35,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.vibesshared.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutUsScreen(navController: NavController, name: String?, aboutName: String?) {
+
+
     val context = LocalContext.current
+
 
     val videoUri = remember {
         try {
-            Uri.parse("android.resource://${context.packageName}color_splat")
+            Uri.parse("android.resource://${context.packageName}/${R.raw.char_splash}")
         } catch (e: Exception) {
             println("Error parsing video URI: ${e.message}")
             Uri.EMPTY
@@ -82,7 +86,7 @@ fun AboutUsScreen(navController: NavController, name: String?, aboutName: String
                     ),
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                         }
                     }
                 )

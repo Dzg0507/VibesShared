@@ -30,4 +30,11 @@ data class Message(
     val type: String = "text",
     val imageUrl: String? = null, // Add this field for image messages
     var read: Boolean = false // Add this for marking messages as read
-)
+) {
+    companion object {
+        fun message() {
+            val message = Message()
+
+        }
+    }
+}

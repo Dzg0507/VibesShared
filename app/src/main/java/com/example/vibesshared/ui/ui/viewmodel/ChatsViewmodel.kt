@@ -4,16 +4,15 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.vibesshared.ui.ui.components.UserProfile
 import com.example.vibesshared.ui.ui.data.Chat
 import com.example.vibesshared.ui.ui.data.Message
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -22,11 +21,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.io.IOException
 import java.util.UUID
+import javax.inject.Inject
 
-class ChatsViewModel(private val context: Context) : ViewModel() {
+@HiltViewModel
+class ChatsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val auth: FirebaseAuth,
+    private val db: com.google.firebase.firestore.FirebaseFirestore
 
-    private val db = Firebase.firestore
-    private val auth = FirebaseAuth.getInstance()
+) : ViewModel() {
+
 
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages = _messages.asStateFlow()
@@ -288,8 +292,6 @@ class ChatsViewModel(private val context: Context) : ViewModel() {
                     return@launch
                 }
 
-                val otherUserId = chat.userIds.firstOrNull { it != currentUserId }
-
                 val deleteMessage = hashMapOf(
                     "senderId" to currentUserId,
                     "text" to "This chat has been deleted by the other user.",
@@ -355,7 +357,7 @@ class ChatsViewModel(private val context: Context) : ViewModel() {
                     // Update the last message in the chat
                     db.collection("chats").document(chatId).update(
                         mapOf(
-                            "lastMessage" to "[image]", // You might want to display a different message for images
+                            "lastMessage" to "[image]",
                             "lastMessageTimestamp" to FieldValue.serverTimestamp()
                         )
                     ).await()
@@ -390,20 +392,6 @@ class ChatsViewModel(private val context: Context) : ViewModel() {
                 }
             } catch (e: Exception) {
                 Log.e("ChatsViewModel", "Error marking messages as read for chatId: $chatId", e)
-            }
-        }
-    }
-
-    companion object {
-        fun provideFactory(context: Context): ViewModelProvider.Factory {
-            return object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    if (modelClass.isAssignableFrom(ChatsViewModel::class.java)) {
-                        return ChatsViewModel(context) as T
-                    }
-                    throw IllegalArgumentException("Unknown ViewModel class")
-                }
             }
         }
     }

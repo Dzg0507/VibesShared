@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,6 +24,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +44,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.vibesshared.R
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
@@ -55,7 +58,7 @@ import kotlinx.coroutines.tasks.await
 @Composable
 fun ForgotPasswordScreen(
     navController: NavController,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -63,6 +66,8 @@ fun ForgotPasswordScreen(
     val scope = rememberCoroutineScope()
     val authState by authViewModel.authState.collectAsState()
     val auth = FirebaseAuth.getInstance()
+    val snackbarHostState = remember { SnackbarHostState() }
+
     LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Error -> {
@@ -83,12 +88,13 @@ fun ForgotPasswordScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Reset Password") },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.Filled.ArrowBack, "Back")
                     }
                 }
             )
@@ -104,7 +110,7 @@ fun ForgotPasswordScreen(
         ) {
             // Logo
             Image(
-                painter = painterResource(id = R.drawable.my_profile_icon),
+                painter = painterResource(id = R.drawable.logo1),
                 contentDescription = "App Logo",
                 modifier = Modifier
                     .size(100.dp)
@@ -165,12 +171,14 @@ fun ForgotPasswordScreen(
                             // Using Firebase Auth directly for password reset
                             auth.sendPasswordResetEmail(email).await()
                             resetEmailSent = true
-                            SnackbarHostState().showSnackbar(
-                                "Password reset email sent to $email"
+                            snackbarHostState.showSnackbar(
+                                message = "Password reset email sent to $email",
+                                duration = SnackbarDuration.Short
                             )
                         } catch (e: Exception) {
-                            SnackbarHostState().showSnackbar(
-                                e.message ?: "Failed to send reset email"
+                            snackbarHostState.showSnackbar(
+                                message = e.message ?: "Failed to send reset email",
+                                duration = SnackbarDuration.Short
                             )
                         } finally {
                             isLoading = false
