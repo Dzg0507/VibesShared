@@ -1,392 +1,243 @@
 package com.example.vibesshared.ui.ui.screens
 
-import android.app.Activity
-import android.content.Intent
-import android.net.Uri
-import android.provider.MediaStore
-import androidx.activity.compose.ManagedActivityResultLauncher
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.vibesshared.ui.ui.components.UserProfile
-import androidx.navigation.NavHostController
-import coil.compose.AsyncImage
-import com.example.vibesshared.ui.ui.viewmodel.ProfileState
+import androidx.navigation.NavController
+import com.example.vibesshared.ui.ui.components.HolographicProfile
+import com.example.vibesshared.ui.ui.theme.AppColors
 import com.example.vibesshared.ui.ui.viewmodel.ProfileViewModel
 
 @Composable
 fun ProfileScreen(
-    navController: NavHostController,
-    userId: String,
-    isCurrentUser: Boolean,
+    navController: NavController,
+    userId: String, // Get userId from navigation arguments
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
-    val profileState by viewModel.profileState.collectAsState()
-    var isEditing by remember { mutableStateOf(false) }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val uiState by viewModel.uiState.collectAsState()
 
+    // Load the profile when the screen is created or userId changes
     LaunchedEffect(userId) {
         viewModel.loadProfile(userId)
     }
 
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            selectedImageUri = result.data?.data
-        }
-    }
+    var animateIn by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit){ animateIn = true}
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0B0B0B),
-                        Color(0xFF0B1A2F)
-                    )
-                )
-            )
-    ) {
-        when (profileState) {
-            is ProfileState.Loading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color(0xFF00FF41)
-                )
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (uiState) {
+            is ProfileViewModel.ProfileUiState.Loading -> {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
-
-            is ProfileState.Error -> {
+            is ProfileViewModel.ProfileUiState.Success -> {
+                val profile = (uiState as ProfileViewModel.ProfileUiState.Success).profile
+                ProfileContent(profile, animateIn) // Show the profile content
+            }
+            is ProfileViewModel.ProfileUiState.Error -> {
+                val errorMessage = (uiState as ProfileViewModel.ProfileUiState.Error).message
                 Text(
-                    text = (profileState as ProfileState.Error).message,
+                    text = "Error: $errorMessage",
                     color = Color.Red,
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
-
-            is ProfileState.Success -> {
-                val profile = (profileState as ProfileState.Success).profile
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    ProfileCard(
-                        userProfile = profile,
-                        isCurrentUser = isCurrentUser,
-                        onEdit = { isEditing = true },
-                        selectedImageUri = selectedImageUri,
-                        launcher = launcher
-                    )
-
-                    if (isCurrentUser && isEditing) {
-                        EditProfileSection(
-                            editedFirstName = profile.firstName,
-                            editedLastName = profile.lastName,
-                            editedBio = profile.bio,
-                            editedExperience = profile.experience ?: "",
-                            editedFavLanguage = profile.favoriteLanguage ?: "",
-                            editedSpecialty = profile.specialty ?: "",
-                            editedCurrentProject = profile.currentProject ?: "",
-                            editedLearning = profile.learning ?: "",
-                            onSave = {
-                                viewModel.updateProfile(
-                                    firstName = profile.firstName,
-                                    lastName = profile.lastName,
-                                    bio = profile.bio,
-                                    profilePicture = selectedImageUri,
-                                    experience = profile.experience ?: "",
-                                    favoriteLanguage = profile.favoriteLanguage ?: "",
-                                    specialty = profile.specialty ?: "",
-                                    currentProject = profile.currentProject ?: "",
-                                    learning = profile.learning ?: "",
-                                    onSuccess = { isEditing = false },
-                                    onError = { /* Handle error */ }
-                                )
-                            },
-                            onCancel = { isEditing = false }
-                        )
-                    }
-                }
-            }
         }
     }
 }
-
-
 @Composable
-fun ProfileCard(
-    userProfile: UserProfile?,
-    isCurrentUser: Boolean,
-    onEdit: () -> Unit,
-    selectedImageUri: Uri?,
-    launcher: ManagedActivityResultLauncher<Intent, ActivityResult>
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .clickable { if (isCurrentUser) onEdit() },
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(8.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            if (selectedImageUri != null) {
-                AsyncImage(
-                    model = selectedImageUri,
-                    contentDescription = "Profile Picture",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray)
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Default Profile Picture",
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = userProfile?.firstName ?: "First Name", style = MaterialTheme.typography.headlineSmall)
-            Text(text = userProfile?.lastName ?: "Last Name", style = MaterialTheme.typography.bodyLarge)
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(text = userProfile?.bio ?: "Bio", textAlign = TextAlign.Center)
+fun ProfileContent(profile: com.example.vibesshared.ui.ui.viewmodel.UserProfile, animateIn: Boolean){
 
-            if (isCurrentUser) {
-                IconButton(onClick = {
-                    val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-                    launcher.launch(intent)
-                }) {
-                    Icon(Icons.Default.Build, contentDescription = "Edit Profile Picture")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun EditProfileSection(
-    editedFirstName: String,
-    editedLastName: String,
-    editedBio: String,
-    editedExperience: String,
-    editedFavLanguage: String,
-    editedSpecialty: String,
-    editedCurrentProject: String,
-    editedLearning: String,
-    onSave: () -> Unit,
-    onCancel: () -> Unit
-) {
-    var firstName by remember { mutableStateOf(editedFirstName) }
-    var lastName by remember { mutableStateOf(editedLastName) }
-    var bio by remember { mutableStateOf(editedBio) }
-    var experience by remember { mutableStateOf(editedExperience) }
-    var favLanguage by remember { mutableStateOf(editedFavLanguage) }
-    var specialty by remember { mutableStateOf(editedSpecialty) }
-    var currentProject by remember { mutableStateOf(editedCurrentProject) }
-    var learning by remember { mutableStateOf(editedLearning) }
-
-    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        TextField(
-            value = firstName,
-            onValueChange = { firstName = it },
-            label = { Text("First Name") }
-        )
-        TextField(
-            value = lastName,
-            onValueChange = { lastName = it },
-            label = { Text("Last Name") }
-        )
-        TextField(
-            value = bio,
-            onValueChange = { bio = it },
-            label = { Text("Bio") }
-        )
-        TextField(
-            value = experience,
-            onValueChange = { experience = it },
-            label = { Text("Experience") }
-        )
-        TextField(
-            value = favLanguage,
-            onValueChange = { favLanguage = it },
-            label = { Text("Favorite Language") }
-        )
-        TextField(
-            value = specialty,
-            onValueChange = { specialty = it },
-            label = { Text("Specialty") }
-        )
-        TextField(
-            value = currentProject,
-            onValueChange = { currentProject = it },
-            label = { Text("Current Project") }
-        )
-        TextField(
-            value = learning,
-            onValueChange = { learning = it },
-            label = { Text("Learning") }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Button(onClick = {
-                onSave()
-            }) {
-                Text("Save")
-            }
-            Button(onClick = onCancel) {
-                Text("Cancel")
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatItem(
-    label: String,
-    value: String,
-    color: Color
-) {
     Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = label,
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = 12.sp
+        AnimatedText(
+            text = "Profile",
+            style = MaterialTheme.typography.headlineSmall,
+            color = Color.White,
+            animateIn = animateIn,
+            delayMillis = 900,
+            fromTop = true
         )
+        Spacer(modifier = Modifier.height(24.dp))
+
+        AnimatedProfilePicture(
+            imageUrl = profile.profilePictureUrl,
+            animateIn = animateIn,
+            delayMillis = 2222,
+            fromTop = false
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        AnimatedOutlinedTextField(
+            value = profile.userName ?: "N/A",
+            onValueChange = { },
+            label = "Username",
+            isEditMode = false,
+            animateIn = animateIn,
+            delayMillis = 1620,
+            fromTop = true
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        AnimatedOutlinedTextField(
+            value = profile.firstName ?: "N/A",
+            onValueChange = { },
+            label = "First Name",
+            isEditMode = false,
+            animateIn = animateIn,
+            delayMillis = 740,
+            fromTop = false
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        AnimatedOutlinedTextField(
+            value = profile.lastName ?: "N/A",
+            onValueChange = {  },
+            label = "Last Name",
+            isEditMode = false,
+            animateIn = animateIn,
+            delayMillis = 1300,
+            fromTop = true
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        AnimatedText(
+            text = "Last Post: Coming Soon!",
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppColors.LimeGreen.color,
+            animateIn = animateIn,
+            delayMillis = 1463,
+            fromTop = false
+        )
+    }
+
+}
+
+@Composable
+private fun AnimatedText(
+    text: String,
+    style: androidx.compose.ui.text.TextStyle,
+    color: Color,
+    animateIn: Boolean,
+    delayMillis: Int,
+    fromTop: Boolean = true,
+) {
+    val density = LocalDensity.current
+    val offsetY = if (fromTop) (-100).dp else 1800.dp
+    val animatedOffsetY by animateDpAsState(
+        targetValue = if (animateIn) 0.dp else offsetY,
+        animationSpec = tween(durationMillis = 500, delayMillis = delayMillis), label = "text"
+    )
+
+    AnimatedVisibility(
+        visible = animateIn,
+        enter = fadeIn() + slideInVertically(), // Use slideInVertically
+        exit = fadeOut() + slideOutVertically() // Use slideOutVertically for consistency
+    ) {
         Text(
-            text = value,
+            text = text,
+            style = style,
             color = color,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
+            modifier = Modifier.graphicsLayer {
+                translationY = with(density) { animatedOffsetY.toPx() }
+            }
         )
     }
 }
 
 @Composable
-private fun ProfileTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    color: Color,
-    singleLine: Boolean = true,
-    maxLines: Int = 1
+private fun AnimatedProfilePicture(
+    imageUrl: String?,
+    animateIn: Boolean,
+    delayMillis: Int,
+    fromTop: Boolean = true
 ) {
-    TextField(
-        value = value,
-        onValueChange = onValueChange,
-        colors = TextFieldDefaults.colors(
-            unfocusedContainerColor = Color.Transparent,
-            focusedContainerColor = Color.Transparent,
-            unfocusedTextColor = color,
-            focusedTextColor = color,
-            cursorColor = color
-        ),
-        textStyle = TextStyle(
-            fontSize = 16.sp,
-            textAlign = TextAlign.Center
-        ),
-        singleLine = singleLine,
-        maxLines = maxLines
+    val density = LocalDensity.current
+    val offsetY = if (fromTop) (-400).dp else 100.dp  // Keep consistent with other animations
+    val animatedOffsetY by animateDpAsState(
+        targetValue = if (animateIn) 0.dp else offsetY,
+        animationSpec = tween(durationMillis = 1200, delayMillis = delayMillis), label = "ppic"
     )
-}
 
-@Composable
-private fun InfoField(
-    isEditing: Boolean,
-    value: String,
-    onValueChange: (String) -> Unit,
-    displayValue: String,
-    label: String,
-    icon: ImageVector,
-    color: Color
-) {
-    Column {
-        Text(
-            text = label,
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = 12.sp
-        )
-        if (isEditing) {
-            TextField(
-                value = value,
-                onValueChange = onValueChange,
-                colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedTextColor = color,
-                    focusedTextColor = color,
-                    cursorColor = color
-                ),
-                textStyle = TextStyle(fontSize = 16.sp),
-                leadingIcon = {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = color
-                    )
-                }
+    AnimatedVisibility(
+        visible = animateIn,
+        enter = fadeIn() + slideInVertically(), // Use slideInVertically
+        exit = fadeOut() + slideOutVertically()  // Use slideOutVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .graphicsLayer {
+                    translationY = with(density) { animatedOffsetY.toPx() }
+                },
+            contentAlignment = Alignment.BottomEnd  // Keep content at BottomEnd
+        ) {
+            HolographicProfile( // Assuming HolographicProfile is defined elsewhere
+                imageUrl = imageUrl.toString(),
+                modifier = Modifier.fillMaxSize()
             )
-        } else {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = displayValue,
-                    color = color,
-                    fontSize = 16.sp
-                )
-            }
         }
     }
 }
 
+@Composable
+private fun AnimatedOutlinedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    isEditMode: Boolean,
+    animateIn: Boolean,
+    delayMillis: Int,
+    fromTop: Boolean
+) {
+    val density = LocalDensity.current
+    val offsetX = if (fromTop) (-700).dp else 100.dp // Keep consistent with other animations
+    val animatedOffsetX by animateDpAsState(
+        targetValue = if (animateIn) 0.dp else offsetX,
+        animationSpec = tween(durationMillis = 750, delayMillis = delayMillis), label = "textF"
+    )
 
+    AnimatedVisibility(
+        visible = animateIn,
+        enter = fadeIn() + slideInHorizontally(), // Use slideInHorizontally
+        exit = fadeOut() + slideOutHorizontally()  // Use slideOutHorizontally
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label, color = Color.Gray) }, // Gray color for label
+            enabled = isEditMode,
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    translationX = with(density) { animatedOffsetX.toPx() }
+                },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = AppColors.LimeGreen.color,
+                unfocusedTextColor = AppColors.VividBlue.color,
+                focusedBorderColor = AppColors.SunsetOrange.color,
+                unfocusedBorderColor = AppColors.NeonPink.color,
+                cursorColor = AppColors.LimeGreen.color, // Cursor color
+            ),
+            shape = RoundedCornerShape(8.dp),
+            readOnly = true
+        )
+    }
+}

@@ -1,299 +1,200 @@
+// navigation/Screen.kt
 package com.example.vibesshared.ui.ui.navigation
 
-import android.annotation.SuppressLint
-import androidx.activity.compose.BackHandler
-import androidx.annotation.OptIn
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.NavGraphBuilder
+
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.vibesshared.R
-import com.example.vibesshared.ui.ui.components.NavigationDrawer
+import com.example.vibesshared.ui.ui.enums.GreetingPreference
 import com.example.vibesshared.ui.ui.screens.*
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
 import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
-import com.google.firebase.auth.FirebaseAuth
 
 
-@Composable
-fun BottomNavigationBar(
-    navController: NavHostController,
-    authState: AuthState?,
-    modifier: Modifier = Modifier
-) {
-    if (authState !is AuthState.Authenticated) return
+// **Screen sealed class - ALL SCREENS DEFINED HERE**
+sealed class Screen(val route: String, val title: String? = null, val icon: ImageVector? = null) {
+    object Splash : Screen("splash_screen")
+    object Login : Screen("login_screen")
+    object CreateAccount : Screen("create_account_screen")
+    object ForgotPassword : Screen("forgot_password_screen")
+    object Home : Screen("home_screen", "Home", Icons.Filled.Home)
+    object Friends : Screen("friends_screen", "Friends", Icons.Filled.People)
+    object Chats : Screen("chats_screen", "Chats", Icons.Filled.ChatBubble)
+    object CreatePost : Screen("create_post_screen")
+    object Settings : Screen("settings_screen", "Settings", Icons.Filled.Settings)
+    object AboutUs : Screen("about_us_screen", "AboutUs", Icons.Filled.Settings)
+    object ArrowScreen : Screen("arrow_screen", "Arrow", Icons.Filled.Settings)
+    object MyProfile : Screen("my_profile_screen", "My Profile", Icons.Filled.AccountBox)
 
-    val items = listOf(
-        Screen.Home,
-        Screen.Friends,
-        Screen.Chats
-    )
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-
-    NavigationBar(
-        containerColor = Color.White,
-        contentColor = Color.DarkGray,
-        modifier = modifier
-    ) {
-        items.forEach { screen ->
-            NavigationBarItem(
-                icon = {
-                    screen.icon?.let { iconRes ->
-                        val imageVector = when (currentDestination?.route) {
-                            screen.route -> screen.selectedIcon ?: iconRes
-                            else -> iconRes
-                        }
-                        Icon(imageVector = imageVector, contentDescription = screen.title)
-                    }
-                },
-                label = { Text(screen.title ?: "") },
-                selected = currentDestination?.route == screen.route,
-                onClick = { navigateToScreen(navController, screen) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = colorResource(id = R.color.night_blue),
-                    unselectedIconColor = Color.LightGray,
-                    unselectedTextColor = Color.Gray,
-                    selectedTextColor = colorResource(id = R.color.neon_green),
-                    indicatorColor = Color.DarkGray),
-            )
-        }
-    }
-}
-
-
-private fun navigateToScreen(navController: NavHostController, screen: Screen) {
-    navController.navigate(screen.route) {
-        popUpTo(navController.graph.findStartDestination().id) {
-            saveState = true
-        }
-        launchSingleTop = true
-        restoreState = true
-    }
-}
-
-@OptIn(UnstableApi::class)
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@Composable
-fun SetupNavGraph(
-    navController: NavHostController = rememberNavController(),
-    auth: FirebaseAuth
-) {
-    val authViewModel: AuthViewModel = hiltViewModel()
-    val authState by authViewModel.authState.collectAsState()
-    val navigationEvent by authViewModel.navigationEvent.collectAsState(initial = NavigationEvent.None)
-
-    val showSplash = rememberSaveable { mutableStateOf(true) }
-    val bottomBarWidthFraction = remember { mutableFloatStateOf(1f) }
-    val drawerWidthFraction = remember { mutableFloatStateOf(0.8f) }
-
-    val startDestination = when {
-        showSplash.value -> Screen.Splash.route
-        authState is AuthState.Authenticated -> Screen.Home.route
-        else -> Screen.Login.route
+    // Profile now is an object and has a function to create the route
+    object Profile : Screen("profile_screen") {
+        const val USER_ID_KEY = "userId"
+        fun createRoute(userId: String) = "profile_screen/$userId"
     }
 
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination?.route
 
-
-
-    BackHandler(enabled = currentDestination != Screen.Home.route) {
-        navController.navigate(Screen.Home.route) {
-            popUpTo(Screen.Home.route) {
-                inclusive = true
-            }
-        }
+    // Messaging now is an object and has a function to create the route
+    object Messaging : Screen("messaging_screen") {
+        const val CHAT_ID_KEY = "chatId"
+        fun createRoute(chatId: String) = "messaging_screen/$chatId"
+    }
+    object Comments : Screen("comments_screen/{postId}") { // ADD COMMENTS SCREEN HERE
+        fun createRoute(postId: String) = "comments_screen/$postId" // Route with postId argument
     }
 
-    LaunchedEffect(navigationEvent) {
-        when (navigationEvent) {
-            is NavigationEvent.NavigateToRoute -> {
-                navController.navigate((navigationEvent as NavigationEvent.NavigateToRoute).route) {
-                    (navigationEvent as NavigationEvent.NavigateToRoute).popUpToRoute?.let { popUpToRoute ->
-                        popUpTo(popUpToRoute) {
-                            inclusive = (navigationEvent as NavigationEvent.NavigateToRoute).inclusive
-                        }
-                    }
-                }
-            }
-            else -> { /* Do nothing */ }
-        }
-    }
-
-    Scaffold(
-        containerColor = Color.Transparent,
-        bottomBar = {
-            if (!showSplash.value && authState is AuthState.Authenticated) {
-                BottomNavigationBar(
-                    navController = navController,
-                    authState = authState,
-                    modifier = Modifier.fillMaxWidth(bottomBarWidthFraction.value)
-                )
-            }
-        }
-    ) { scaffoldPadding ->
-        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-
-        NavigationDrawer(
-            navController = navController,
-            drawerState = drawerState,
-            auth = auth
-        ) {
-            NavHost(
-                navController = navController,
-                startDestination = startDestination,
-                modifier = Modifier.padding(scaffoldPadding)
-            ) {
-                composable(Screen.Login.route) {
-                    LoginScreen(navController = navController, authViewModel = authViewModel)
-                }
-
-                splashComposable(showSplash, authState, navController)
-                authComposables(navController, authViewModel)
-                homeComposable(navController)
-                friendsComposable(navController)
-                chatsScreenComposable(navController)
-                messagingComposable(navController)
-                profileComposable(navController, auth)
-                settingsComposable(navController)
-                aboutUsComposable(navController)
-                arrowScreenComposable(navController)
-                createPostComposable(navController)
-
-            }
-        }
-    }
-}
-
-private fun NavGraphBuilder.homeComposable(navController: NavHostController) {
-    composable(Screen.Home.route) {
-        HomeScreen(navController)
+    companion object {
+        fun bottomNavItems(): List<Screen> = listOf(Home, Friends, Chats, MyProfile)
     }
 }
 
 @UnstableApi
-private fun NavGraphBuilder.splashComposable(
-    showSplash: MutableState<Boolean>,
-    authState: AuthState?,
-    navController: NavHostController
+@Composable
+fun SetupNavGraph(
+    navController: NavHostController,
+    startDestination: String,
+    paddingValues: PaddingValues
 ) {
-    composable(Screen.Splash.route) {
-        SplashScreen(
-            onTimeout = {
-                showSplash.value = false
-                navController.navigate(
-                    if (authState is AuthState.Authenticated) Screen.Home.route else Screen.Login.route
-                ) {
-                    popUpTo(Screen.Splash.route) { inclusive = true }
+    val authViewModel: AuthViewModel = hiltViewModel() // Hoist the ViewMode
+    var currentGreetingPreference = remember { mutableStateOf(authViewModel.getGreetingPreference()?: GreetingPreference.FIRST_NAME) }
+    NavHost(
+        navController = navController,
+        startDestination = startDestination,
+        modifier = Modifier.padding(paddingValues)
+    ) {
+        composable(route = Screen.Splash.route) {
+            SplashScreen(navController)
+        }
+        composable(route = Screen.Login.route) {
+            LoginScreen(navController = navController)
+        }
+        composable(route = Screen.CreateAccount.route) {
+            CreateAccountScreen(navController = navController)
+        }
+        composable(route = Screen.ForgotPassword.route) {
+            ForgotPasswordScreen(navController = navController)
+        }
+        composable(route = Screen.Home.route) {
+            HomeScreen(
+                navController = navController,
+                greetingPreference = currentGreetingPreference.value  // Access the value here
+            )
+        }
+
+        // In SetupNavGraph
+        composable(route = Screen.Friends.route) {
+            val authViewModel: AuthViewModel = hiltViewModel()
+            val authState by authViewModel.authState.collectAsState() //Correct way
+
+            when (authState) {
+                is AuthState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
+                        CircularProgressIndicator()
+                    }
+                }
+                is AuthState.Authenticated -> {
+                    val userId = (authState as AuthState.Authenticated).user!!.uid
+                    FriendsScreen(navController = navController, currentUserId = userId)
+                }
+                is AuthState.Unauthenticated -> {
+                    LaunchedEffect(key1 = true) {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0)
+                        }
+                    }
+                }
+                is AuthState.Error -> {
+                    Text("Authentication error: ${(authState as AuthState.Error).message}")
                 }
             }
-        )
-    }
-}
+        }
+        composable(route = Screen.CreatePost.route) {
+            CreatePostScreen(navController = navController)
+        }
+        composable(route = Screen.Settings.route) {
+            SettingsScreen(
+                navController = navController,
+                greetingPreference = currentGreetingPreference.value,
+                onGreetingPreferenceChange = { newPreference ->
+                    Log.d("SettingsScreen", "Preference changed to: $newPreference")
+                    authViewModel.updateGreetingPreference(newPreference)
+                    currentGreetingPreference.value = newPreference
+                    if (true) {
+                        currentGreetingPreference.value = newPreference
+                    } else {
+                        Log.e("SettingsScreen", "New preference is null, not updating.")
+                    }
+                }
+            )
+        }
 
-private fun NavGraphBuilder.authComposables(
-    navController: NavHostController,
-    authViewModel: AuthViewModel
-) {
-    composable(Screen.CreateAccount.route) {
-        CreateAccountScreen(navController = navController, authViewModel = authViewModel)
-    }
-    composable(Screen.ForgotPassword.route) {
-        ForgotPasswordScreen(navController = navController, authViewModel = authViewModel)
-    }
-}
 
-private fun NavGraphBuilder.friendsComposable(navController: NavHostController) {
-    composable(Screen.Friends.route) {
-        FriendsScreen(navController)
-    }
-}
 
-private fun NavGraphBuilder.chatsScreenComposable(navController: NavHostController) {
-    composable(Screen.Chats.route) {
-        ChatsScreen(navController)
-    }
-}
 
-private fun NavGraphBuilder.messagingComposable(navController: NavHostController) {
-    composable(
-        route = Screen.Messaging.route,
-        arguments = listOf(navArgument(Screen.Messaging.CHAT_ID_KEY) { type = NavType.StringType })
-    ) { backStackEntry ->
-        val chatId = backStackEntry.arguments?.getString(Screen.Messaging.CHAT_ID_KEY) ?: return@composable
-        MessagingScreen(navController, chatId)
-    }
-}
-
-private fun NavGraphBuilder.profileComposable(navController: NavHostController, auth: FirebaseAuth) {
-    composable(
-        route = "profile/{userId}",
-        arguments = listOf(
-            navArgument("userId") {
-                type = NavType.StringType
-                defaultValue = auth.currentUser?.uid ?: ""
+        composable(route = Screen.AboutUs.route) {
+            AboutUsScreen(navController = navController)
+        }
+        composable(route = Screen.ArrowScreen.route) {
+            ArrowScreen(navController = navController)
+        }
+        composable(route = Screen.Chats.route) {
+            ChatsScreen(navController = navController)
+        }
+        composable(route = Screen.MyProfile.route) {
+            MyProfileScreen(navController = navController)
+        }
+        composable(Screen.Comments.route) { backStackEntry -> // ADD COMMENTS SCREEN COMPOSABLE HERE
+            val postId = backStackEntry.arguments?.getString("postId")
+            CommentsScreen(navController = navController, postId = postId.toString()) // Pass postId
+        }
+        // Profile screen with argument
+        composable(
+            route = Screen.Profile.route + "/{${Screen.Profile.USER_ID_KEY}}",
+            arguments = listOf(navArgument(Screen.Profile.USER_ID_KEY) { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString(Screen.Profile.USER_ID_KEY)
+            if (userId != null) {
+                ProfileScreen(navController = navController, userId = userId)
+            } else {
+                Text("Error loading profile")
             }
-        )
-    ) { backStackEntry ->
-        val userId = backStackEntry.arguments?.getString("userId")
-        val isCurrentUser = userId == auth.currentUser?.uid
-        ProfileScreen(
-            navController = navController,
-            userId = userId ?: "",
-            isCurrentUser = isCurrentUser
-        )
+        }
+        // Messaging screen with argument
+        composable(
+            route = Screen.Messaging.route + "/{${Screen.Messaging.CHAT_ID_KEY}}",
+            arguments = listOf(navArgument(Screen.Messaging.CHAT_ID_KEY) { type = NavType.StringType })
+        ) { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString(Screen.Messaging.CHAT_ID_KEY)
+            if (chatId != null) {
+                MessagingScreen(navController = navController, chatId = chatId)
+            } else {
+                Text("Error loading chat")
+            }
+        }
     }
 }
-
-private fun NavGraphBuilder.settingsComposable(navController: NavHostController) {
-    composable(Screen.Settings.route) {
-        SettingsScreen(
-            navController = navController,
-            onDrawerWidthChange = { /* Will implement later */ },
-            onBottomBarWidthChange = { /* Will implement later */ },
-            initialDrawerWidthFraction = 0.8f,
-            initialBottomBarWidthFraction = 1f
-        )
-    }
-}
-
-
-private fun NavGraphBuilder.aboutUsComposable(navController: NavHostController) {
-    composable(Screen.AboutUs.route) {
-        AboutUsScreen(
-            navController = navController,
-            name = "About",
-            aboutName = "About Us"
-        )
-    }
-}
-
-
-private fun NavGraphBuilder.arrowScreenComposable(navController: NavHostController) {
-    composable(Screen.ArrowScreen.route) {
-        ArrowScreen(navController)
-    }
-}
-
-private fun NavGraphBuilder.createPostComposable(navController: NavHostController) {
-    composable(Screen.CreatePost.route) {
-        CreatePostScreen(navController)
-    }
-}
-

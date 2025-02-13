@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,11 +39,8 @@ import com.example.vibesshared.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutUsScreen(navController: NavController, name: String?, aboutName: String?) {
-
-
+fun AboutUsScreen(navController: NavController) {
     val context = LocalContext.current
-
 
     val videoUri = remember {
         try {
@@ -80,13 +77,13 @@ fun AboutUsScreen(navController: NavController, name: String?, aboutName: String
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(aboutName.toString(), color = Color.White) },
+                    title = { Text("About Us", color = Color.Black) },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                         containerColor = Color.Transparent
                     ),
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(Icons.Filled.ArrowBackIosNew, contentDescription = "Back", tint = Color.White)
                         }
                     }
                 )
@@ -104,7 +101,6 @@ fun AboutUsScreen(navController: NavController, name: String?, aboutName: String
                     text = "Vibes Shared App",
                     style = MaterialTheme.typography.headlineMedium,
                     color = Color.Blue,
-
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 

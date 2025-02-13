@@ -1,40 +1,37 @@
 package com.example.vibesshared.ui.ui.data
 
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ServerTimestamp
-import java.util.Date
 
 data class Chat(
-    val id: String = "",
-    val userIds: List<String> = emptyList(),
-    var lastMessage: String = "",
     val chatId: String = "",
-    @ServerTimestamp var lastMessageTimestamp: Date? = null,
-    var otherUserName: String? = null,
-    val deletedBy: List<String> = emptyList(),
-    var statusMessage: String? = null, // Add this field
-    var unreadCount: Int = 0, // Add this field
-    val participants: List<String> = emptyList() // Add this line
+    val participants: List<String> = emptyList(),
+    val lastMessage: String = "",
+    @ServerTimestamp
+    val lastMessageTimestamp: Timestamp? = null // Add missing field and annotation
 )
 
-
-
-
-
 data class Message(
-    val id: String = "",
-    val userIds: List<String> = emptyList(),
+    val messageId: String = "",
     val chatId: String = "",
     val senderId: String = "",
     val text: String = "",
-    @ServerTimestamp val timestamp: Date? = null,
-    val type: String = "text",
-    val imageUrl: String? = null, // Add this field for image messages
-    var read: Boolean = false // Add this for marking messages as read
+    val imageUrl: String? = null,
+    @ServerTimestamp
+    val timestamp: Timestamp? = null, // Add @ServerTimestamp annotation
+    val type: String = "text"
 ) {
-    companion object {
-        fun message() {
-            val message = Message()
-
-        }
+    // Helper function for creating Firestore document
+    fun toFirestoreMap(): Map<String, Any> {
+        return mapOf(
+            "messageId" to messageId,
+            "chatId" to chatId,
+            "senderId" to senderId,
+            "text" to text,
+            "imageUrl" to (imageUrl ?: ""),
+            "timestamp" to FieldValue.serverTimestamp(), // Keep FieldValue for writes
+            "type" to type
+        )
     }
 }

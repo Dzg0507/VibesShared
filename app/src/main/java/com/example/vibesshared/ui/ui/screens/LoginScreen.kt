@@ -8,8 +8,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import com.example.vibesshared.ui.ui.navigation.Screen
-
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -32,11 +30,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -44,9 +43,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.vibesshared.R
+import com.example.vibesshared.ui.ui.navigation.Screen
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
 import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -56,30 +55,34 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
     val authState by authViewModel.authState.collectAsState()
-    var errorMessage by remember { mutableStateOf("") }
+    val isLoading by authViewModel.isLoading.collectAsState() // Get loading state from ViewModel
 
+    // LaunchedEffect to handle navigation on successful authentication
     LaunchedEffect(authState) {
+        Log.d("LoginScreen", "AuthState changed: $authState") // Log AuthState changes
         when (authState) {
             is AuthState.Authenticated -> {
+                Log.d("LoginScreen", "Navigation to Home triggered by AuthState.Authenticated")
                 navController.navigate(Screen.Home.route) {
                     popUpTo(Screen.Login.route) { inclusive = true }
                 }
             }
             is AuthState.Error -> {
-                isLoading = false
-                errorMessage = (authState as AuthState.Error).message
+                // Error message is handled directly in the UI
+                Log.d("LoginScreen", "AuthState is Error: ${(authState as AuthState.Error).message}")
             }
             AuthState.Loading -> {
-                isLoading = true
+                Log.d("LoginScreen", "AuthState is Loading")
+                // No need to set isLoading here, it's handled by the ViewModel
             }
             AuthState.Unauthenticated -> {
-                isLoading = false
+                Log.d("LoginScreen", "AuthState is Unauthenticated")
+                // No need to set isLoading here
             }
         }
     }
+
 
     Column(
         modifier = Modifier
@@ -89,10 +92,10 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Image(
-            painter = painterResource(id = R.drawable.logo1),
+            painter = painterResource(id = R.drawable.logo1), // Make sure this resource exists
             contentDescription = "App Logo",
             modifier = Modifier
-                .size(120.dp)
+                .size(300.dp)
                 .padding(bottom = 32.dp)
         )
 
@@ -104,8 +107,11 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            isError = authState is AuthState.Error && (authState as? AuthState.Error)?.message?.contains("email", ignoreCase = true) == true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next // Add imeAction
+            ),
+            isError = authState is AuthState.Error && email.isBlank(), // Simplified error check
             singleLine = true
         )
 
@@ -117,7 +123,10 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .padding(bottom = 8.dp),
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done // Add imeAction
+            ),
             trailingIcon = {
                 IconButton(onClick = { showPassword = !showPassword }) {
                     Icon(
@@ -126,7 +135,7 @@ fun LoginScreen(
                     )
                 }
             },
-            isError = authState is AuthState.Error && (authState as? AuthState.Error)?.message?.contains("password", ignoreCase = true) == true,
+            isError = authState is AuthState.Error && password.isBlank(), // Simplified error check
             singleLine = true
         )
 
@@ -137,7 +146,7 @@ fun LoginScreen(
         ) {
             if (authState is AuthState.Error) {
                 Text(
-                    text = (authState as AuthState.Error).message,
+                    text = (authState as AuthState.Error).message, // Display the error message
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
@@ -146,22 +155,19 @@ fun LoginScreen(
 
         Button(
             onClick = {
-                isLoading = true
-                scope.launch {
-                    authViewModel.login(email, password)
-                }
+                authViewModel.login(email, password) // Directly call login
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
-            enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
+            enabled = !isLoading && email.isNotBlank() && password.isNotBlank() // Use isLoading from ViewModel
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier
                         .size(24.dp)
                         .padding(end = 8.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = Color.White // Or your desired color
                 )
             }
             Text("Login")

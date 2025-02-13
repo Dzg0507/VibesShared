@@ -25,6 +25,7 @@
                                               <map>
                                                 <entry key="color" value="000000" />
                                                 <entry key="imagePath" value="C:\Users\devin\AppData\Local\Temp\ic_android_black_24dp.xml" />
+                                                <entry key="opacityPercent" value="60" />
                                               </map>
                                             </option>
                                           </PersistentState>
@@ -79,7 +80,8 @@
                                             <option name="values">
                                               <map>
                                                 <entry key="color" value="000000" />
-                                                <entry key="imagePath" value="C:\Users\devin\Desktop\20230408_115422.jpg" />
+                                                <entry key="imagePath" value="C:\Users\devin\OneDrive\Desktop\Drawable-Resources\BackgroundEraser_20250108_230108669.png" />
+                                                <entry key="scalingPercent" value="118" />
                                               </map>
                                             </option>
                                           </PersistentState>

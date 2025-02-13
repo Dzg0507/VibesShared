@@ -1,5 +1,7 @@
 package com.example.vibesshared.ui.ui.screens
 
+import androidx.annotation.OptIn
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,14 +14,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -29,18 +31,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.media3.common.util.Log
+import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
+import com.example.vibesshared.ui.ui.enums.GreetingPreference
 import com.example.vibesshared.ui.ui.navigation.Screen
 import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
 
-
+@OptIn(UnstableApi::class)
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    onDrawerWidthChange: (Float) -> Unit,
-    onBottomBarWidthChange: (Float) -> Unit,
-    initialDrawerWidthFraction: Float,
-    initialBottomBarWidthFraction: Float
+    greetingPreference: GreetingPreference,
+    onGreetingPreferenceChange: (GreetingPreference) -> Unit,
+    // Add this parameter
 ) {
     var darkMode by remember { mutableStateOf(false) }
     var notifications by remember { mutableStateOf(true) }
@@ -48,10 +52,9 @@ fun SettingsScreen(
     var privateAccount by remember { mutableStateOf(false) }
     var showProfilePicture by remember { mutableStateOf(true) }
     var allowDirectMessages by remember { mutableStateOf(true) }
-    var drawerWidthFraction by remember { mutableFloatStateOf(initialDrawerWidthFraction) }
-    var bottomBarWidthFraction by remember { mutableFloatStateOf(initialBottomBarWidthFraction) }
 
     val authViewModel: AuthViewModel = hiltViewModel()
+
 
     Column(
         modifier = Modifier
@@ -111,32 +114,31 @@ fun SettingsScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Slider for Navigation Drawer Width
-        Text(text = "Navigation Drawer Width")
-        Slider(
-            value = drawerWidthFraction,
-            onValueChange = {
-                drawerWidthFraction = it
-                onDrawerWidthChange(it)
-            },
-            valueRange = 0.5f..0.9f,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Text(text = "${(drawerWidthFraction * 100).toInt()}%")
-        Spacer(modifier = Modifier.height(16.dp))
+        // Greeting preference setting
+        SettingItem(
+            title = "Greeting Preference",
+            options = listOf(
+                GreetingPreference.FIRST_NAME.displayName,
+                GreetingPreference.LAST_NAME.displayName,
+                GreetingPreference.USER_NAME.displayName,
+                "${GreetingPreference.FIRST_NAME.displayName} & ${GreetingPreference.LAST_NAME.displayName}" // Combined option
+            ),
+            selectedOption = greetingPreference.displayName,
+            onSelectionChange = { selected ->
+                val foundPreference = when (selected) {
+                    GreetingPreference.FIRST_NAME.displayName -> GreetingPreference.FIRST_NAME
+                    GreetingPreference.LAST_NAME.displayName -> GreetingPreference.LAST_NAME
+                    GreetingPreference.USER_NAME.displayName -> GreetingPreference.USER_NAME
+                    "${GreetingPreference.FIRST_NAME.displayName} & ${GreetingPreference.LAST_NAME.displayName}" -> GreetingPreference.FULL_NAME // Handle the combined name
+                    else -> {
+                        Log.e("SettingsScreen", "No matching GreetingPreference found for display name: $selected")
+                        GreetingPreference.FIRST_NAME
+                    }
+                }
+                onGreetingPreferenceChange(foundPreference)
+            }
 
-        // Slider for Bottom Navigation Bar Width
-        Text(text = "Bottom Navigation Bar Width")
-        Slider(
-            value = bottomBarWidthFraction,
-            onValueChange = {
-                bottomBarWidthFraction = it
-                onBottomBarWidthChange(it)
-            },
-            valueRange = 0.5f..1f,
-            modifier = Modifier.fillMaxWidth()
         )
-        Text(text = "${(bottomBarWidthFraction * 100).toInt()}%")
         Spacer(modifier = Modifier.height(16.dp))
 
         // Logout button
@@ -186,5 +188,50 @@ private fun SettingItem(
                 uncheckedTrackColor = MaterialTheme.colorScheme.secondaryContainer
             )
         )
+    }
+}
+
+@Composable
+private fun SettingItem(
+    title: String,
+    options: List<String>,
+    selectedOption: String,
+    onSelectionChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = selectedOption,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { expanded = true }
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onSelectionChange(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
     }
 }

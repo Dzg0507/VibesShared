@@ -19,6 +19,8 @@
         tools:ignore="ScopedStorage" />
 
     <application
+        android:enableOnBackInvokedCallback="true"
+
         android:name=".ui.ui.VibesSharedApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -27,7 +29,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        >
+        tools:targetApi="tiramisu">
         <activity
             android:name=".ui.ui.MainActivity"
             android:exported="true">

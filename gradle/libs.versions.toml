@@ -1,75 +1,132 @@
 [versions]
-android-gradlePlugin = "8.8.0"
-androidx-core = "1.12.0"
-androidx-appcompat = "1.6.1"
-androidx-constraintlayout = "2.1.4"
-androidx-lifecycle = "2.6.2"
-androidx-activity = "1.8.0"
-androidx-test-ext = "1.1.5"
-androidx-test-espresso = "3.5.1"
-firebase-bom = "32.5.0"
-firestore = "24.9.1" # Firestore has its own versioning
-glide = "4.16.0"
-google-material = "1.10.0"
-hilt = "2.48.1"
-junit = "4.13.2"
-kotlin = "1.9.0"
-materialVersion = "2.1.0"
-okhttp-logging = "4.11.0"
-retrofit = "2.9.0"
-google-gms = "4.4.0"
+# Kotlin and Compose
+graphicsCore = "1.0.2"
+kotlin = "2.1.10"
+#composeCompiler = "1.5.10"
+compose = "2025.01.01"
+compose-plugin = "2025.01.01"
+compose-material3 = "1.3.1"
 
+# AndroidX
+androidxCore = "1.15.0"
+androidxAppCompat = "1.7.0"
+androidxConstraintLayout = "2.2.0"
+androidxLifecycle = "2.8.7"
+androidxActivityCompose = "1.10.0"
+androidxNavigationCompose = "2.8.6"
+androidxHiltNavigationCompose = "1.2.0"
+material = "1.12.0"  # Correct: Define the version here
+androidxTestExt = "1.2.1"
+androidxTestEspresso = "3.6.1"
+androidxDatastore = "1.1.2"
+androidx-material3 = "1.1.2"
+
+# Firebase
+firebaseBom = "33.9.0"
+firebase-auth = "23.2.0"
+# Networking
+retrofit = "2.11.0"
+okhttp = "4.12.0"
+
+# Image Loading
+glide = "4.16.0"
+coil = "2.7.0"
+
+# Other Libraries
+lottie = "6.6.2"
+hilt = "2.55"
+kotlinxSerializationJson = "1.8.0"
+playServicesLocation = "21.3.0"
+playServicesMaps = "19.0.0"
+media3 = "1.5.1"
+junit = "4.13.2"
+mockk = "1.13.16"
+animationCoreAndroid = "1.7.2"
 
 [libraries]
-# Core
+androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "compose-material3" } # <---- CHECK THIS LINE
 
-androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
-androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
-androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "androidx-constraintlayout" }
-androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androidx-lifecycle" }
-androidx-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidx-lifecycle" }
-androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "androidx-activity" }
-androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-test-ext" }
-androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-test-espresso" }
+# Kotlin and Compose
+androidx-foundation = { module = "androidx.compose.foundation:foundation" }
+androidx-foundation-layout = { module = "androidx.compose.foundation:foundation-layout" }
+androidx-graphics-core = { module = "androidx.graphics:graphics-core", version.ref = "graphicsCore" }
+androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+androidx-material3 = { module = "androidx.compose.material3:material3" }
+androidx-ui = { module = "androidx.compose.ui:ui" }
+androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+com-google-firebase-firebase-auth = { module = "com.google.firebase:firebase-auth" , version.ref = "firebase-auth" }
+jetbrains-kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version = "2.1.10" }
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose" }
+androidx-compose-foundation = { module = "androidx.compose.foundation:foundation" }
+androidx-compose-foundation-layout = { module = "androidx.compose.foundation:foundation-layout" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui" }
+androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 
-# UI
-glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
-glide-compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
-google-material = { module = "com.google.android.material:material", version.ref = "google-material" }
+# AndroidX
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppCompat" }
+androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "androidxConstraintLayout" }
+androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androidxLifecycle" }
+androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivityCompose" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "androidxNavigationCompose" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidxDatastore" }
+androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "androidxDatastore" }
+material = { module = "com.google.android.material:material", version.ref = "material" } # Correct: Define the alias
+
+# Firebase
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", version = "23.2.0" }
+firebase-firestore = { module = "com.google.firebase:firebase-firestore-ktx", version = "25.1.2" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics-ktx", version = "22.2.0" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics-ktx", version = "19.4.0" }
+firebase-perf = { module = "com.google.firebase:firebase-perf", version = "21.0.4" }
+firebase-storage = { module = "com.google.firebase:firebase-storage-ktx", version = "21.0.1" }
 
 # Hilt
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
-
-# Firebase
-firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
-firebase-auth = { module = "com.google.firebase:firebase-auth-ktx" }
-firebase-firestore = { module = "com.google.firebase:firebase-firestore-ktx", version.ref = "firestore" }
-firebase-analytics = { module = "com.google.firebase:firebase-analytics-ktx" }
-firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics-ktx" }
-firebase-perf = { module = "com.google.firebase:firebase-perf-ktx" }
+hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "androidxHiltNavigationCompose" }
 
 # Networking
-material = { module = "androidx.compose.material:material", version.ref = "materialVersion" }
-okhttp-logging = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp-logging" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 retrofit-converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
+okhttp-logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp" }
+
+# Image Loading
+glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
+glide-compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil"}
+
+# Other Libraries
+lottie = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
+play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
+androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
+androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
+androidx-media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
 
 # Testing
 junit = { module = "junit:junit", version.ref = "junit" }
-androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
-androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
-androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
-androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
-androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
-androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-
-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version = "1.0.0" }
+androidx-junit-v121 = { module = "androidx.test.ext:junit", version.ref = "androidxTestExt" }
+androidx-espresso-core-v361 = { module = "androidx.test.espresso:espresso-core", version.ref = "androidxTestEspresso" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+google-firebase-analytics = {module = "com.google.firebase:firebase-analytics"}
+google-firebase-auth = {module = "com.google.firebase:firebase-auth"}
+androidx-animation-core-android = { group = "androidx.compose.animation", name = "animation-core-android", version.ref = "animationCoreAndroid" }
 
 [plugins]
-android-application = { id = "com.android.application", version.ref = "android-gradlePlugin" }
-android-library = { id = "com.android.library", version.ref = "android-gradlePlugin" }
-hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+android-application = { id = "com.android.application", version = "8.2.2" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-google-gms = { id = "com.google.gms.google-services", version.ref = "google-gms" }
+kotlin-kapt = { id = "kotlin-kapt" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+googleServices = { id = "com.google.gms.google-services", version = "4.4.2" }
+kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+crashlytics = { id = "com.google.firebase.crashlytics", version = "3.0.3"}
+jetbrainsCompose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

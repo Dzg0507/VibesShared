@@ -1,318 +1,101 @@
 package com.example.vibesshared.ui.ui.components
 
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
-import com.airbnb.lottie.compose.animateLottieCompositionAsState
-import com.airbnb.lottie.compose.rememberLottieComposition
-import com.example.vibesshared.R
+import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.vibesshared.ui.ui.navigation.Screen
-import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.delay
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.random.Random
-
-@Composable
-fun AnimatedLottieButton(onClick: () -> Unit) {
-    val composition by rememberLottieComposition(
-        LottieCompositionSpec.RawRes(R.raw.compass)
-    )
-    val progress by animateLottieCompositionAsState(
-        composition,
-        iterations = LottieConstants.IterateForever,
-        isPlaying = true
-    )
-
-    LottieAnimation(
-        composition,
-        progress = { progress },
-        modifier = Modifier
-            .size(100.dp)
-            .clickable { onClick() }
-    )
-}
-
-@Composable
-fun ColorSplashEffect(
-    modifier: Modifier = Modifier,
-    startAnimation: Boolean,
-    onAnimationEnd: () -> Unit
-) {
-    val colors = listOf(
-        Color.Red, Color.Blue, Color.Green, Color.Yellow, Color.Magenta, Color.Cyan
-    )
-    val density = LocalDensity.current
-    val maxSize = with(density) { 300.dp.toPx() }
-    val animatableSize = remember { Animatable(0f) }
-
-    LaunchedEffect(startAnimation) {
-        if (startAnimation) {
-            animatableSize.animateTo(
-                targetValue = maxSize,
-                animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
-            )
-            onAnimationEnd()
-        }
-    }
-
-    if (startAnimation) {
-        Canvas(modifier = modifier.fillMaxSize()) {
-            val center = Offset(size.width / 2, size.height / 2)
-            val currentSize = animatableSize.value
-
-            for (i in colors.indices) {
-                val angle = (i.toFloat() / colors.size) * 360f
-                val color = colors[i]
-
-                drawCircle(
-                    color = color,
-                    radius = currentSize / 2,
-                    center = center + Offset(
-                        x = currentSize / 4 * cos(Math.toRadians(angle.toDouble())).toFloat(),
-                        y = currentSize / 4 * sin(Math.toRadians(angle.toDouble())).toFloat()
-                    ),
-                    alpha = 1f - (currentSize / maxSize)
-                )
-            }
-        }
-    }
-}
 
 @Composable
 fun NavigationDrawer(
-    navController: NavHostController,
+    navController: NavController,
     drawerState: DrawerState,
-    gesturesEnabled: Boolean = true,
-    drawerWidthFraction: Float = 0.8f,
-    auth: FirebaseAuth,
-    content: @Composable () -> Unit
+    scope: CoroutineScope,
+    modifier: Modifier = Modifier // Add modifier parameter
 ) {
-    val scope = rememberCoroutineScope()
-    val density = LocalDensity.current
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-    val drawerWidth = screenWidth * drawerWidthFraction
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRouteState by remember { derivedStateOf { navBackStackEntry?.destination?.route } }
+    val currentRoute = currentRouteState
+    val auth = Firebase.auth
 
-    val items = listOf(
-        Screen.Home to { navController.navigate(Screen.Home.route) },
-        Screen.Friends to { navController.navigate(Screen.Friends.route) },
-        Screen.Chats to { navController.navigate(Screen.Chats.route) },
-        Screen.Profile to {
-            auth.currentUser?.uid?.let { userId ->
-                navController.navigate("profile/$userId")
-            }
-        },
-        Screen.Settings to { navController.navigate(Screen.Settings.route) },
-        Screen.AboutUs to { navController.navigate(Screen.AboutUs.route) }
-    )
-
-    var isLogoInteractive by remember { mutableStateOf(true) }
-    var isLogoBouncing by remember { mutableStateOf(false) }
-    var showColorSplash by remember { mutableStateOf(false) }
-    var startColorSplash by remember { mutableStateOf(false) }
-    var showSplashButton by remember { mutableStateOf(true) }
-
-    val infiniteTransition = rememberInfiniteTransition(label = "")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ), label = ""
-    )
-
-    val rotationAngle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(10000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ), label = ""
-    )
-
-    val logoAnimatableX = remember { Animatable(0f) }
-    val logoAnimatableY = remember { Animatable(0f) }
-    val logoSize = 100.dp
-    val collisionSize = 250.dp
-    val screenHeight = configuration.screenHeightDp.dp
-
-    fun resetLogoState() {
-        scope.launch {
-            isLogoInteractive = false
-            isLogoBouncing = false
-            showSplashButton = false
-            logoAnimatableX.snapTo(0f)
-            logoAnimatableY.snapTo(0f)
-        }
+    val drawerScreens = remember {
+        listOf(
+            Screen.Home,
+            Screen.Settings,
+            Screen.AboutUs,
+            Screen.ArrowScreen,
+            Screen.MyProfile
+        )
     }
 
-    LaunchedEffect(isLogoBouncing, drawerState.currentValue) {
-        if (isLogoBouncing && drawerState.isOpen) {
-            val maxX = with(density) { (drawerWidth - collisionSize).toPx() }
-            val maxY = with(density) { (screenHeight - collisionSize - 56.dp).toPx() }
+    ModalDrawerSheet(
+        modifier = modifier
+            .width(250.dp)
+    ) {
+        Spacer(Modifier.height(16.dp))
+        drawerScreens.forEach { screen ->
+            NavigationDrawerItem(
+                icon = { screen.icon?.let { Icon(it, contentDescription = screen.title) } },
+                label = { Text(screen.title ?: "Unnamed Screen") },
+                selected = currentRoute == screen.route,
+                onClick = {
+                    Log.d("NavigationDebug", "Drawer Item Clicked: ${screen.route}, Current Route: $currentRoute")
+                    scope.launch { drawerState.close() }
 
-            var velocityX = with(density) { 3.dp.toPx() }
-            var velocityY = with(density) { 3.dp.toPx() }
-
-            logoAnimatableX.snapTo(maxX / 2)
-            logoAnimatableY.snapTo(maxY / 2)
-            velocityX *= if (Random.nextBoolean()) 1f else -1f
-            velocityY *= if (Random.nextBoolean()) 1f else -1f
-
-            launch {
-                while (isLogoBouncing && drawerState.isOpen) {
-                    val newX = logoAnimatableX.value + velocityX
-                    val newY = logoAnimatableY.value + velocityY
-
-                    when {
-                        newX > maxX -> {
-                            logoAnimatableX.snapTo(maxX)
-                            velocityX = -velocityX * 0.9f
-                        }
-                        newX < 0f -> {
-                            logoAnimatableX.snapTo(0f)
-                            velocityX = -velocityX * 0.9f
-                        }
-                        else -> {
-                            logoAnimatableX.snapTo(newX)
-                        }
+                    if (screen is Screen.Home) {
+                        navigateToHomeScreenDrawer(navController, screen.route)
+                        Log.d("NavigationDebug", "Navigation Drawer Navigating to Home: ${screen.route}")
+                    } else {
+                        navigateToScreenDrawer(navController, screen.route)
+                        Log.d("NavigationDebug", "Navigation Drawer Navigating to: ${screen.route}")
                     }
-
-                    when {
-                        newY > maxY -> {
-                            logoAnimatableY.snapTo(maxY)
-                            velocityY = -velocityY * 0.9f
-                        }
-                        newY < 0f -> {
-                            logoAnimatableY.snapTo(0f)
-                            velocityY = -velocityY * 0.9f
-                        }
-                        else -> {
-                            logoAnimatableY.snapTo(newY)
-                        }
-                    }
-
-                    delay(5)
-                }
-            }
-        } else {
-            logoAnimatableX.stop()
-            logoAnimatableY.stop()
-        }
-    }
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = gesturesEnabled,
-        drawerContent = {
-            ModalDrawerSheet(
+                },
                 modifier = Modifier
-                    .width(drawerWidth)
-                    .clickable(
-                        enabled = isLogoInteractive,
-                        onClick = {
-                            if (isLogoInteractive) {
-                                isLogoBouncing = !isLogoBouncing
-                            }
-                        }
-                    ),
-                drawerContainerColor = MaterialTheme.colorScheme.background
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    ColorSplashEffect(
-                        modifier = Modifier.fillMaxSize(),
-                        startAnimation = startColorSplash,
-                        onAnimationEnd = {
-                            startColorSplash = false
-                            showColorSplash = false
-                            resetLogoState()
-                        }
-                    )
+                    .padding(NavigationDrawerItemDefaults.ItemPadding)
+                    .background(Color.Green.copy(alpha = 0.1f))
+            )
+        }
+    }
+}
 
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        Spacer(Modifier.height(12.dp))
-                        items.forEach { (screen, navigateTo) ->
-                            NavigationDrawerItem(
-                                label = { Text(screen.title ?: "") },
-                                selected = false,
-                                onClick = {
-                                    scope.launch {
-                                        drawerState.close()
-                                        navigateTo()
-                                    }
-                                },
-                                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-                                colors = NavigationDrawerItemDefaults.colors()
-                            )
-                        }
 
-                        AnimatedLottieButton(onClick = {
-                            scope.launch {
-                                drawerState.close()
-                                navController.navigate(Screen.ArrowScreen.route)
-                            }
-                        })
-
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        if (showSplashButton) {
-                            Button(
-                                onClick = {
-                                    showColorSplash = true
-                                    startColorSplash = true
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.CenterHorizontally)
-                                    .padding(bottom = 16.dp)
-                            ) {
-                                Text("Color Splash")
-                            }
-                        }
-
-                        if (!showColorSplash) {
-                            Image(
-                                painter = painterResource(id = R.drawable.my_profile_icon),
-                                contentDescription = "Logo",
-                                modifier = Modifier
-                                    .size(logoSize)
-                                    .graphicsLayer {
-                                        scaleX = scale
-                                        scaleY = scale
-                                        rotationZ = rotationAngle
-                                    }
-                                    .offset {
-                                        IntOffset(
-                                            x = logoAnimatableX.value.toInt(),
-                                            y = logoAnimatableY.value.toInt()
-                                        )
-                                    }
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-                }
-            }
-        },
-        content = content
-    )
+private fun navigateToScreenDrawer(navController: NavController, route: String) {
+    navController.navigate(route) {
+        popUpTo(navController.currentBackStackEntry?.destination?.parent?.id?: navController.graph.findStartDestination().id) {
+            inclusive = false
+        }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+private fun navigateToHomeScreenDrawer(navController: NavController, route: String) { // For HomeScreen
+    navController.navigate(route) {
+        popUpTo(Screen.Home.route) {
+            inclusive = true
+        }
+        launchSingleTop = true
+        restoreState = true
+    }
 }
