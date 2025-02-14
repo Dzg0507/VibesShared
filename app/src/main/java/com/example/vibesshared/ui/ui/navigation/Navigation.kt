@@ -25,7 +25,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
-
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -35,7 +34,6 @@ import com.example.vibesshared.ui.ui.enums.GreetingPreference
 import com.example.vibesshared.ui.ui.screens.*
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
 import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
-
 
 // **Screen sealed class - ALL SCREENS DEFINED HERE**
 sealed class Screen(val route: String, val title: String? = null, val icon: ImageVector? = null) {
@@ -51,6 +49,7 @@ sealed class Screen(val route: String, val title: String? = null, val icon: Imag
     object AboutUs : Screen("about_us_screen", "AboutUs", Icons.Filled.Settings)
     object ArrowScreen : Screen("arrow_screen", "Arrow", Icons.Filled.Settings)
     object MyProfile : Screen("my_profile_screen", "My Profile", Icons.Filled.AccountBox)
+    object TriviaGame : Screen("trivia_game_screen") // ADD TRIVIA GAME SCREEN
 
     // Profile now is an object and has a function to create the route
     object Profile : Screen("profile_screen") {
@@ -58,13 +57,13 @@ sealed class Screen(val route: String, val title: String? = null, val icon: Imag
         fun createRoute(userId: String) = "profile_screen/$userId"
     }
 
-
     // Messaging now is an object and has a function to create the route
     object Messaging : Screen("messaging_screen") {
         const val CHAT_ID_KEY = "chatId"
         fun createRoute(chatId: String) = "messaging_screen/$chatId"
     }
-    object Comments : Screen("comments_screen/{postId}") { // ADD COMMENTS SCREEN HERE
+    object Comments : Screen("comments_screen/{postId}") {
+        // ADD COMMENTS SCREEN HERE
         fun createRoute(postId: String) = "comments_screen/$postId" // Route with postId argument
     }
 
@@ -81,7 +80,9 @@ fun SetupNavGraph(
     paddingValues: PaddingValues
 ) {
     val authViewModel: AuthViewModel = hiltViewModel() // Hoist the ViewMode
-    var currentGreetingPreference = remember { mutableStateOf(authViewModel.getGreetingPreference()?: GreetingPreference.FIRST_NAME) }
+    var currentGreetingPreference = remember {
+        mutableStateOf(authViewModel.getGreetingPreference() ?: GreetingPreference.FIRST_NAME)
+    }
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -113,14 +114,16 @@ fun SetupNavGraph(
 
             when (authState) {
                 is AuthState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
                 }
+
                 is AuthState.Authenticated -> {
                     val userId = (authState as AuthState.Authenticated).user!!.uid
                     FriendsScreen(navController = navController, currentUserId = userId)
                 }
+
                 is AuthState.Unauthenticated -> {
                     LaunchedEffect(key1 = true) {
                         navController.navigate(Screen.Login.route) {
@@ -128,6 +131,7 @@ fun SetupNavGraph(
                         }
                     }
                 }
+
                 is AuthState.Error -> {
                     Text("Authentication error: ${(authState as AuthState.Error).message}")
                 }
@@ -152,8 +156,6 @@ fun SetupNavGraph(
                 }
             )
         }
-
-
 
 
         composable(route = Screen.AboutUs.route) {
@@ -195,6 +197,9 @@ fun SetupNavGraph(
             } else {
                 Text("Error loading chat")
             }
+        }
+        composable(route = Screen.TriviaGame.route) { // ADD TRIVIA GAME COMPOSABLE
+            TriviaGameScreen()
         }
     }
 }

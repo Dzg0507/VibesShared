@@ -11,4 +11,8 @@
     <string name="profile_title">My Profile</string>
     <string name="settings_title">My Settings</string>
     <string name="about_us_title">About VibesShared</string>
+    <string name="restart_game">Restart</string>
+    <string name="game_over_score">Game Over!</string>
+    <string name="time_left">Time Remaining</string>
+    <string name="loading">Loading\n</string>
 </resources>

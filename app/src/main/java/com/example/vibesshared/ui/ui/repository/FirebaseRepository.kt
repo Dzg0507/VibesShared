@@ -4,7 +4,14 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import android.webkit.MimeTypeMap
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.example.vibesshared.ui.ui.data.*
+import com.example.vibesshared.ui.ui.data.Question
+import com.example.vibesshared.ui.ui.data.TriviaResponse
 import com.example.vibesshared.ui.ui.di.DispatcherProvider
 import com.example.vibesshared.ui.ui.utils.Result
 import com.google.firebase.Timestamp
@@ -12,7 +19,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
@@ -24,9 +30,13 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.GET
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -283,7 +293,7 @@ class FirebaseRepository @Inject constructor(
 
     fun getPostsWithUsersFlow(): Flow<List<PostWithUser>> = callbackFlow {
         val listener = postsCollection
-            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     close(error)
@@ -303,12 +313,11 @@ class FirebaseRepository @Inject constructor(
                     val deferredPosts = posts.map { post ->
                         async {
                             try {
-                                val userResult = getUserProfile(post.userId) //Correct - use UserProfile
+                                val userResult = getUserProfile(post.userId)
                                 when (userResult) {
                                     is Result.Success -> {
-                                        PostWithUser(post, userResult.data) //Correct return
+                                        PostWithUser(post, userResult.data)
                                     }
-
                                     is Result.Failure -> {
                                         Log.e(
                                             "FirebaseRepository",
@@ -316,15 +325,10 @@ class FirebaseRepository @Inject constructor(
                                         )
                                         null
                                     }
-
                                     else -> {
                                         null
                                     }
                                 }
-
-
-
-
                             } catch (e: Exception) {
                                 Log.e("FirebaseRepository", "Error getting user: ${e.message}", e)
                                 null
@@ -378,7 +382,7 @@ class FirebaseRepository @Inject constructor(
     fun getCommentsFlow(postId: String): Flow<List<Comment>> = callbackFlow {
         val listener = postsCollection.document(postId)
             .collection("comments")
-            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     close(error)
@@ -492,7 +496,7 @@ class FirebaseRepository @Inject constructor(
     fun getMessagesFlow(chatId: String): Flow<List<Message>> = callbackFlow {
         val listener = chatsCollection.document(chatId)
             .collection("messages")
-            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     close(error)
@@ -570,3 +574,85 @@ class FirebaseRepository @Inject constructor(
 private fun Uri.getMimeType(context: Context): String? {
     return context.contentResolver.getType(this)
     }
+
+//Trivia Game Functions
+
+
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+interface TriviaApiService {
+    @GET("api.php")
+    suspend fun getQuestions(
+        @retrofit2.http.Query("amount") amount: Int = 10,
+        @retrofit2.http.Query("difficulty") difficulty: String = "easy",
+        @retrofit2.http.Query("category") category: Int? = null,
+        @retrofit2.http.Query("type") type: String = "multiple"
+    ): TriviaResponse
+
+    @GET("api_daily_challenge.php")
+    suspend fun getDailyChallengeQuestions(): TriviaResponse
+}
+
+class TriviaRepository @Inject constructor(
+    private val apiService: TriviaApiService,
+    @ApplicationContext private val context: Context // Add @ApplicationContext
+
+) {
+    suspend fun getQuestions(difficulty: String, category: String, questionCount: Int): List<Question> {
+        val categoryId = getCategoryCode(category)
+        val response =
+            apiService.getQuestions(amount = questionCount, difficulty = difficulty, category = categoryId)
+        return response.results.map { it.toQuestion() }
+    }
+
+    suspend fun getDailyChallengeQuestions(): List<Question> {
+        val response = apiService.getDailyChallengeQuestions()
+        return response.results.map { it.toQuestion() }
+    }
+
+    private fun getCategoryCode(category: String): Int? {
+        return when (category) {
+            "science" -> 17
+            "history" -> 23
+            else -> null
+        }
+    }
+
+    suspend fun saveLeaderboard(scores: List<Int>) {
+        context.dataStore.edit { preferences ->
+            scores.forEachIndexed { index, score ->
+                preferences[intPreferencesKey("score_$index")] = score
+            }
+        }
+    }
+
+    fun getLeaderboard(): Flow<List<Int>> {
+        return context.dataStore.data.map { preferences ->
+            (0..4).mapNotNull { index ->
+                preferences[intPreferencesKey("score_$index")]
+            }
+        }
+    }
+
+}
+//Make the toQuestion() public
+fun TriviaResponse.Result.toQuestion(): Question {
+    return Question(
+        question = question,
+        correctAnswer = correct_answer,
+        incorrectAnswers = incorrect_answers
+    )
+}
+
+
+// Retrofit setup
+class TriviaRetrofit @Inject constructor() {
+    fun createApiService(): TriviaApiService {
+        return Retrofit.Builder()
+            .baseUrl("https://opentdb.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(TriviaApiService::class.java)
+    }
+}

@@ -33,6 +33,8 @@ fun ChatsScreen(navController: NavController, modifier: Modifier = Modifier) {
     val chats by viewModel.chats.collectAsState()
     val currentUserId = Firebase.auth.currentUser?.uid ?: ""
 
+
+
     LaunchedEffect(key1 = currentUserId) {
         viewModel.getUserChats()
     }

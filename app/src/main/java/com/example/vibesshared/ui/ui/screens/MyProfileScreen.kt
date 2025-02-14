@@ -25,6 +25,7 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.vibesshared.ui.ui.components.HolographicProfile
+import com.example.vibesshared.ui.ui.navigation.Screen
 import com.example.vibesshared.ui.ui.theme.AppColors
 import com.example.vibesshared.ui.ui.viewmodel.MyProfileViewModel
 import com.google.firebase.auth.ktx.auth
@@ -34,7 +35,13 @@ import com.google.firebase.ktx.Firebase
 @Composable
 fun MyProfileScreen(navController: NavController,
     viewModel: MyProfileViewModel = hiltViewModel()
+
 ) {
+    Button(onClick = {
+        navController.navigate(Screen.TriviaGame.route) // Navigate to the trivia game
+    }) {
+        Text("Play Trivia")
+    }
     val userId = remember { Firebase.auth.currentUser?.uid }
     var userName by remember { mutableStateOf("") }
     var firstName by remember { mutableStateOf("") }
