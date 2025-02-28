@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import com.airbnb.lottie.compose.*
 import com.example.vibesshared.R
-import com.example.vibesshared.ui.ui.screens.DarkBackground
+import com.example.vibesshared.ui.ui.theme.DarkBackground
 
 
 @Composable

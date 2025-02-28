@@ -20,6 +20,8 @@ data class FirestoreUser(
 
     val userPost: String = "", // Or 'post' if you renamed it
     val isOnline: Boolean = false,
+
+
 )
 
 

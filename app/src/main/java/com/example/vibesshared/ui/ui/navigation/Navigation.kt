@@ -1,4 +1,3 @@
-// navigation/Screen.kt
 package com.example.vibesshared.ui.ui.navigation
 
 import androidx.compose.foundation.layout.Box
@@ -41,7 +40,10 @@ sealed class Screen(val route: String, val title: String? = null, val icon: Imag
     object Login : Screen("login_screen")
     object CreateAccount : Screen("create_account_screen")
     object ForgotPassword : Screen("forgot_password_screen")
-    object Home : Screen("home_screen", "Home", Icons.Filled.Home)
+    object Home : Screen("home_screen", "Home", Icons.Filled.Home) {
+        const val POST_ID_KEY = "postId" // Add postId parameter for scrolling to a specific post
+        fun createRoute(postId: String? = null) = if (postId != null) "home_screen?postId=$postId" else "home_screen"
+    }
     object Friends : Screen("friends_screen", "Friends", Icons.Filled.People)
     object Chats : Screen("chats_screen", "Chats", Icons.Filled.ChatBubble)
     object CreatePost : Screen("create_post_screen")
@@ -77,9 +79,9 @@ sealed class Screen(val route: String, val title: String? = null, val icon: Imag
 fun SetupNavGraph(
     navController: NavHostController,
     startDestination: String,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
 ) {
-    val authViewModel: AuthViewModel = hiltViewModel() // Hoist the ViewMode
+    val authViewModel: AuthViewModel = hiltViewModel() // Hoist the ViewModel
     var currentGreetingPreference = remember {
         mutableStateOf(authViewModel.getGreetingPreference() ?: GreetingPreference.FIRST_NAME)
     }
@@ -100,17 +102,20 @@ fun SetupNavGraph(
         composable(route = Screen.ForgotPassword.route) {
             ForgotPasswordScreen(navController = navController)
         }
-        composable(route = Screen.Home.route) {
+        composable(
+            route = Screen.Home.route + "?${Screen.Home.POST_ID_KEY}={${Screen.Home.POST_ID_KEY}}",
+            arguments = listOf(navArgument(Screen.Home.POST_ID_KEY) { type = NavType.StringType; nullable = true })
+        ) {
             HomeScreen(
                 navController = navController,
-                greetingPreference = currentGreetingPreference.value  // Access the value here
+                greetingPreference = currentGreetingPreference.value // Access the value here
             )
         }
 
         // In SetupNavGraph
         composable(route = Screen.Friends.route) {
             val authViewModel: AuthViewModel = hiltViewModel()
-            val authState by authViewModel.authState.collectAsState() //Correct way
+            val authState by authViewModel.authState.collectAsState() // Correct way
 
             when (authState) {
                 is AuthState.Loading -> {
@@ -127,7 +132,7 @@ fun SetupNavGraph(
                 is AuthState.Unauthenticated -> {
                     LaunchedEffect(key1 = true) {
                         navController.navigate(Screen.Login.route) {
-                            popUpTo(0)
+                            popUpTo(Screen.Login.route) { inclusive = true } // Clear stack to login
                         }
                     }
                 }
@@ -156,7 +161,6 @@ fun SetupNavGraph(
                 }
             )
         }
-
 
         composable(route = Screen.AboutUs.route) {
             AboutUsScreen(navController = navController)

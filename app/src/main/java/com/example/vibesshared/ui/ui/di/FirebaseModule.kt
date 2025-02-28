@@ -2,6 +2,7 @@ package com.example.vibesshared.ui.ui.di
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.example.vibesshared.ui.ui.repository.BadgeRepository
 import com.example.vibesshared.ui.ui.repository.FirebaseRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
@@ -45,8 +46,17 @@ object FirebaseModule {
         firestore: FirebaseFirestore,
         auth: FirebaseAuth,
         storage: FirebaseStorage,
-        dispatcherProvider: DispatcherProvider // Inject DispatcherProvider
+        dispatcherProvider: DispatcherProvider
     ): FirebaseRepository {
         return FirebaseRepository(context, firestore, auth, storage, dispatcherProvider)
+    }
+
+    @Provides
+    @Singleton
+    fun provideBadgeRepository(
+        firestore: FirebaseFirestore,
+        dispatcherProvider: DispatcherProvider
+    ): BadgeRepository {
+        return BadgeRepository(firestore, dispatcherProvider)
     }
 }

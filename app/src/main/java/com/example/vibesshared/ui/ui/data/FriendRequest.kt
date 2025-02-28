@@ -10,5 +10,6 @@ data class FriendRequest(
     @get:PropertyName("status") @set:PropertyName("status")
     var status: String = "", // "pending", "accepted", "rejected"
     val participants: List<String> = listOf() // Add this line
+
 )
 

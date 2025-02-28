@@ -28,11 +28,11 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.vibesshared.ui.ui.data.Chat
 import com.example.vibesshared.ui.ui.data.Message
-import com.example.vibesshared.ui.ui.theme.ElectricPurple
-import com.example.vibesshared.ui.ui.theme.LimeGreen
+import com.example.vibesshared.ui.ui.theme.AppColors.ElectricPurple
+import com.example.vibesshared.ui.ui.theme.AppColors.LimeGreen
+import com.example.vibesshared.ui.ui.theme.AppColors.SunsetOrange
+import com.example.vibesshared.ui.ui.theme.AppColors.VividBlue
 import com.example.vibesshared.ui.ui.theme.NeonPink
-import com.example.vibesshared.ui.ui.theme.SunsetOrange
-import com.example.vibesshared.ui.ui.theme.VividBlue
 import com.example.vibesshared.ui.ui.viewmodel.ChatsViewModel
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.ktx.auth

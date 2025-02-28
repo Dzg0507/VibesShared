@@ -23,9 +23,11 @@ object AppModule {
     fun provideTriviaRetrofit(): TriviaRetrofit {
         return TriviaRetrofit()
     }
+
     @Provides
     @Singleton
     fun provideDispatcherProvider(): DispatcherProvider {
         return DefaultDispatcherProvider() // This line STAYS
     }
 }
+

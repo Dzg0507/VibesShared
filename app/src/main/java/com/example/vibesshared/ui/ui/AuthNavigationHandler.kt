@@ -10,8 +10,8 @@ import com.example.vibesshared.ui.ui.viewmodel.AuthState
 
 @Composable
 fun AuthNavigationHandler(
-    navController: NavHostController, // Use NavHostController
-    authState: AuthState?, // authState can be null
+    navController: NavHostController,
+    authState: AuthState?,
     currentRoute: String?
 ) {
     LaunchedEffect(authState, currentRoute) {
@@ -19,17 +19,10 @@ fun AuthNavigationHandler(
         if (currentRoute != null && authState != null) {
             when (authState) {
                 is AuthState.Authenticated -> {
-                    // Only navigate to Home IF we're NOT already on a valid content screen
-                    if (currentRoute in listOf(
-                            Screen.Login.route,
-                            Screen.CreateAccount.route,
-                            Screen.ForgotPassword.route,
-                            Screen.Splash.route
-                        )) {
-                        Log.d("AuthNavigation", "Navigating to Home from Auth screen")
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(0) { inclusive = true } // Clear entire back stack
-                        }
+                    // Navigate to Home regardless of the current route
+                    Log.d("AuthNavigation", "Navigating to Home from $currentRoute")
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(0) { inclusive = true } // Clear entire back stack
                     }
                 }
 

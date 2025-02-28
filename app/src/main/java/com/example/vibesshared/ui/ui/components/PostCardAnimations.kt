@@ -13,10 +13,10 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.vibesshared.ui.ui.screens.NeonBlue
-import com.example.vibesshared.ui.ui.screens.NeonGreen
-import com.example.vibesshared.ui.ui.screens.NeonPink
-import com.example.vibesshared.ui.ui.screens.NeonYellow
+import com.example.vibesshared.ui.ui.theme.NeonBlue
+import com.example.vibesshared.ui.ui.theme.NeonGreen
+import com.example.vibesshared.ui.ui.theme.NeonPink
+import com.example.vibesshared.ui.ui.theme.NeonYellow
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin

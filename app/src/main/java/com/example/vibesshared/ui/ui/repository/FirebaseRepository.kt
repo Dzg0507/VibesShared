@@ -10,8 +10,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.vibesshared.ui.ui.data.*
-import com.example.vibesshared.ui.ui.data.Question
-import com.example.vibesshared.ui.ui.data.TriviaResponse
 import com.example.vibesshared.ui.ui.di.DispatcherProvider
 import com.example.vibesshared.ui.ui.utils.Result
 import com.google.firebase.Timestamp
@@ -50,11 +48,11 @@ class FirebaseRepository @Inject constructor(
     private val dispatchers: DispatcherProvider
 ) {
     private val usersCollection = firestore.collection("users")
-    private val friendRequestsCollection = firestore.collection("friendRequests") // Keep, but unused by getFriends
+    private val friendRequestsCollection = firestore.collection("friendRequests")
     private val chatsCollection = firestore.collection("chats")
     private val postsCollection = firestore.collection("posts")
 
-    // region Authentication (Correct - As you provided)
+    // region Authentication
     fun getCurrentUser() = auth.currentUser
 
     suspend fun signIn(email: String, pass: String): Result<Unit> = withContext(dispatchers.io) {
@@ -65,6 +63,46 @@ class FirebaseRepository @Inject constructor(
             Result.Failure(e)
         }
     }
+    suspend fun migratePostImages(db: FirebaseFirestore) {
+        try {
+            val posts = db.collection("posts").get().await()
+            posts.documents.forEach { doc ->
+                val postImage = doc.getString("postImage")
+                if (postImage != null) {
+                    db.collection("posts").document(doc.id)
+                        .update(mapOf(
+                            "postImages" to listOf(postImage),
+                            "postImage" to FieldValue.delete()
+                        ))
+                        .await()
+                    Log.d("FirebaseRepository", "Migrated postImage to postImages for document ${doc.id}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error migrating post images: ${e.message}", e)
+        }
+    }
+
+    suspend fun updateUserBadgesWithDate(userId: String, badgeData: Map<String, Any>): Result<Unit> = withContext(dispatchers.io) {
+        try {
+            Log.d("FirebaseRepository", "Updating badges and dates for user $userId: $badgeData")
+            firestore.collection("users").document(userId).update(badgeData).await()
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error updating user badges with date: $userId", e)
+            Result.Failure(e)
+        }
+    }
+
+    suspend fun updateUserBadges(userId: String, badges: List<String>): Result<Unit> =
+        withContext(dispatchers.io) {
+            try {
+                usersCollection.document(userId).update("badges", badges).await()
+                Result.Success(Unit)
+            } catch (e: Exception) {
+                Result.Failure(e)
+            }
+        }
 
     suspend fun signUp(email: String, pass: String): Result<Unit> = withContext(dispatchers.io) {
         try {
@@ -78,7 +116,7 @@ class FirebaseRepository @Inject constructor(
     fun signOut() = auth.signOut()
     // endregion
 
-    // region User Profile (Corrected - Add getUserProfile)
+    // region User Profile
     suspend fun updateUserProfile(userProfile: UserProfile): Result<Unit> =
         withContext(dispatchers.io) {
             try {
@@ -99,19 +137,16 @@ class FirebaseRepository @Inject constructor(
                     .getExtensionFromMimeType(contentResolver.getType(imageUri))
                     ?: "jpg"
 
-                // Correct path: userId/profilePictures/...
-                val imageRef = storage.reference.child(userId).child("profilePictures").child("${UUID.randomUUID()}.$fileExtension") // Improved file naming
+                val imageRef = storage.reference.child(userId).child("profilePictures").child("${UUID.randomUUID()}.$fileExtension")
 
                 val uploadTask = imageRef.putFile(imageUri)
                 val snapshot = uploadTask.await()
                 val downloadUrl = snapshot.storage.downloadUrl.await().toString()
 
-                // Update the user's document (if needed) - depends on your data structure
                 usersCollection.document(userId)
-                    .update("profilePictureUrl", downloadUrl) // Or set the whole UserProfile
+                    .update("profilePictureUrl", downloadUrl)
 
                 Result.Success(downloadUrl)
-
             } catch (e: Exception) {
                 Log.e("FirebaseRepository", "Error uploading profile picture", e)
                 Result.Failure(e)
@@ -130,45 +165,39 @@ class FirebaseRepository @Inject constructor(
         awaitClose { listener.remove() }
     }.flowOn(dispatchers.io)
 
-    //USE THIS FOR GETTING USER PROFILE
     suspend fun getUserProfile(userId: String): Result<UserProfile> =
         withContext(dispatchers.io) {
-            Log.d("FirebaseRepository", "getUserProfile called for userId: $userId") // Add logging here
+            Log.d("FirebaseRepository", "getUserProfile called for userId: $userId")
             try {
                 val doc = usersCollection.document(userId).get().await()
-                Log.d("FirebaseRepository", "getUserProfile: Document snapshot: $doc") // Add this
-
+                Log.d("FirebaseRepository", "getUserProfile: Document snapshot: $doc")
                 val userProfile = doc.toObject(UserProfile::class.java)
-                Log.d("FirebaseRepository", "getUserProfile: User profile: $userProfile") //Add
-
+                Log.d("FirebaseRepository", "getUserProfile: User profile: $userProfile")
                 if (userProfile != null) {
                     Result.Success(userProfile)
                 } else {
                     val errorMessage = "User profile does not exist or failed to parse for userId: $userId"
-                    Log.e("FirebaseRepository", errorMessage) // Log the error
-                    Result.Failure(Exception(errorMessage)) //Return
+                    Log.e("FirebaseRepository", errorMessage)
+                    Result.Failure(Exception(errorMessage))
                 }
             } catch (e: Exception) {
-                Log.e("FirebaseRepository", "getUserProfile: Error getting user profile for userId: $userId", e) //Log
+                Log.e("FirebaseRepository", "getUserProfile: Error getting user profile for userId: $userId", e)
                 Result.Failure(e)
             }
         }
 
-    // endregion
-
-
     suspend fun getFriends(userId: String): Result<List<UserProfile>> = withContext(dispatchers.io) {
         try {
             val currentUserDoc = usersCollection.document(userId).get().await()
-
-            val friendIds = currentUserDoc.get("friends") as? List<String> ?: listOf()
+            @Suppress("UNCHECKED_CAST")
+            val friendIds = currentUserDoc["friends"] as? List<String> ?: listOf()
 
             val friends = friendIds.mapNotNull { friendId ->
                 val userResult = getUserProfile(friendId)
                 if (userResult is Result.Success) {
                     userResult.data
                 } else {
-                    null // Filter out failures
+                    null
                 }
             }
             Result.Success(friends)
@@ -176,74 +205,102 @@ class FirebaseRepository @Inject constructor(
             Result.Failure(e)
         }
     }
+
     suspend fun sendFriendRequest(receiverId: String): Result<Unit> = withContext(dispatchers.io) {
         try {
             val senderId = auth.currentUser?.uid ?: throw Exception("Not authenticated")
             if (senderId == receiverId) throw Exception("Cannot send request to yourself")
 
-            val requestId = friendRequestsCollection.document().id  // Get a new document ID
-            val request = FriendRequest( //Use data class
-                requestId = requestId, //Set the id
+            val existingRequest = friendRequestsCollection
+                .whereEqualTo("senderId", senderId)
+                .whereEqualTo("receiverId", receiverId)
+                .get().await().documents.toList()
+
+            if (existingRequest.isNotEmpty()) {
+                throw Exception("Friend request already exists")
+            }
+
+            val requestId = friendRequestsCollection.document().id
+            val request = FriendRequest(
+                requestId = requestId,
                 senderId = senderId,
                 receiverId = receiverId,
                 status = "pending",
-                participants = listOf(senderId, receiverId) // Add both participants
+                participants = listOf(senderId, receiverId)
             )
 
-            friendRequestsCollection.document(requestId).set(request).await() //Set it by id
+            friendRequestsCollection.document(requestId).set(request).await()
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Failure(e)
         }
     }
-    //Correct acceptFriendRequest
+
     suspend fun acceptFriendRequest(requestId: String): Result<Unit> = withContext(dispatchers.io) {
         try {
-            // Get the friend request document
             val requestDoc = friendRequestsCollection.document(requestId).get().await()
             val request = requestDoc.toObject(FriendRequest::class.java)
                 ?: throw Exception("Friend request not found")
 
-            // Update the status and add the participants array in a single transaction.
-            friendRequestsCollection.document(requestId).update(mapOf(
-                "status" to "accepted",
-                "participants" to listOf(request.senderId, request.receiverId) // Add participants
-            )).await()
+            if (request.status == "accepted") {
+                throw Exception("Friend request already accepted")
+            }
+            val senderFriendsRef = usersCollection.document(request.senderId).get().await()
+            val senderFriends = if (senderFriendsRef["friends"] is MutableList<*>) {
+                @Suppress("UNCHECKED_CAST")
+                senderFriendsRef["friends"] as? MutableList<String> ?: mutableListOf()
+            } else {
+                mutableListOf()
+            }
+
+            val receiverFriendsRef = usersCollection.document(request.receiverId).get().await()
+            val receiverFriends = if (receiverFriendsRef["friends"] is MutableList<*>) {
+                @Suppress("UNCHECKED_CAST")
+                (receiverFriendsRef["friends"] as? MutableList<String>) ?: mutableListOf()
+            } else {
+                mutableListOf()
+            }
+
+            firestore.runTransaction { transaction ->
+                transaction.update(requestDoc.reference, "status", "accepted")
+                senderFriends.add(request.receiverId)
+                transaction.update(senderFriendsRef.reference, "friends", senderFriends)
+                receiverFriends.add(request.senderId)
+                transaction.update(receiverFriendsRef.reference, "friends", receiverFriends)
+            }.await()
 
             Result.Success(Unit)
-        } catch (e: Exception){
+        } catch (e: Exception) {
             Result.Failure(e)
         }
     }
-    //Corrected reject
+
     suspend fun rejectFriendRequest(requestId: String): Result<Unit> = withContext(dispatchers.io) {
-        try{
-            friendRequestsCollection.document(requestId).update("status", "rejected").await() //Update the status
+        try {
+            friendRequestsCollection.document(requestId).update("status", "rejected").await()
             Result.Success(Unit)
-        } catch (e: Exception){
+        } catch (e: Exception) {
             Result.Failure(e)
         }
     }
 
-
-    //Gets the friend requests sent to user
     suspend fun getReceivedFriendRequests(userId: String): List<FriendRequest> = withContext(dispatchers.io) {
         try {
             val querySnapshot = friendRequestsCollection
                 .whereEqualTo("receiverId", userId)
-                .whereEqualTo("status", "pending") //Get pending
+                .whereEqualTo("status", "pending")
                 .get()
                 .await()
 
-            // Use .mapNotNull and .copy to correctly populate requestId
             querySnapshot.documents.mapNotNull { doc ->
-                doc.toObject(FriendRequest::class.java)?.copy(requestId = doc.id) // Populate requestId
+                doc.toObject(FriendRequest::class.java)?.copy(requestId = doc.id)
             }
         } catch (e: Exception) {
             Log.e("FirebaseRepository", "Error getting received friend requests", e)
-            emptyList() // Return empty list on error
+            emptyList()
         }
     }
+
     suspend fun getCommentCount(postId: String): Result<Int> {
         return try {
             val snapshot = firestore.collection("posts")
@@ -268,25 +325,164 @@ class FirebaseRepository @Inject constructor(
                     .await()
                     .documents
                     .mapNotNull { doc ->
-                        doc.toObject(UserProfile::class.java) // Directly to UserProfile
-
+                        doc.toObject(UserProfile::class.java)
                     }
                 Result.Success(users)
             } catch (e: Exception) {
                 Result.Failure(e)
             }
         }
-
     // endregion
 
-    // region Posts & Comments (Correct - As you provided)
-    suspend fun createPost(post: Post): Result<String> = withContext(dispatchers.io) {
+    // region Posts & Comments
+    suspend fun createPost(
+        userId: String,
+        postText: String,
+        postImages: List<String?> = emptyList(),
+        postVideo: String? = null,
+        pollData: Map<String, Any>? = null
+    ): Result<String> = withContext(dispatchers.io) {
         try {
-            val docRef = postsCollection.document()
-            val newPost = post.copy(postId = docRef.id, timestamp = Timestamp.now())
-            docRef.set(newPost).await()
-            Result.Success(docRef.id)
+            Log.d("FirebaseRepository", "Creating post for user $userId, postImages: $postImages, postVideo: $postVideo, pollData: $pollData")
+            val postData = mapOf(
+                "userId" to userId,
+                "postText" to postText,
+                "postImages" to postImages,
+                "postVideo" to postVideo,
+                "profilePictureUrl" to null,
+                "userName" to null,
+                "timestamp" to Timestamp.now(),
+                "pollData" to pollData,
+                "hasUserVoted" to false
+            )
+            val postRef = firestore.collection("posts").add(postData).await()
+            incrementUserPostCount(userId)
+            checkAndAwardPostBadges(userId)
+            Log.d("FirebaseRepository", "Post created, incrementing postCount for user $userId")
+            Result.Success(postRef.id)
         } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error creating post for user $userId", e)
+            Result.Failure(e)
+        }
+    }
+
+    private suspend fun incrementUserPostCount(userId: String) = withContext(dispatchers.io) {
+        try {
+            firestore.collection("users").document(userId).update(
+                "postCount", FieldValue.increment(1)
+            ).await()
+        } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error incrementing post count for user $userId", e)
+        }
+    }
+
+    suspend fun getUserPostCount(userId: String): Int = withContext(dispatchers.io) {
+        try {
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            val userProfile = userDoc.toObject(UserProfile::class.java)
+            userProfile?.postCount ?: 0
+        } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error getting user post count: $userId", e)
+            0
+        }
+    }
+
+    suspend fun decrementUserPostCount(userId: String) = withContext(dispatchers.io) {
+        try {
+            firestore.collection("users").document(userId).update(
+                "postCount", FieldValue.increment(-1)
+            ).await()
+        } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error decrementing post count for user $userId", e)
+        }
+    }
+
+    private suspend fun awardBadge(userId: String, badgeId: String) {
+        val currentDate = Timestamp.now()
+        val badgeData = mapOf(
+            "badges" to FieldValue.arrayUnion(badgeId),
+            "badgeDates" to mapOf(badgeId to currentDate)
+        )
+        when (val result = updateUserBadgesWithDate(userId, badgeData)) {
+            is Result.Success -> {
+                Log.d("FirebaseRepository", "Successfully awarded badge $badgeId for user $userId")
+            }
+            is Result.Failure -> {
+                Log.e("FirebaseRepository", "Failed to award badge $badgeId for user $userId: ${result.exception.message}")
+            }
+            is Result.Loading -> {
+                Log.d("FirebaseRepository", "Awarding badge $badgeId for user $userId in progress")
+            }
+        }
+    }
+
+    suspend fun checkAndAwardPostBadges(userId: String) = withContext(dispatchers.io) {
+        try {
+            val postCount = getUserPostCount(userId)
+            Log.d("FirebaseRepository", "Checking badges for user $userId, postCount: $postCount")
+
+            if (postCount == 1) {
+                val userDoc = firestore.collection("users").document(userId).get().await()
+                val userProfile = userDoc.toObject(UserProfile::class.java)
+                if (userProfile != null && !userProfile.badges.contains("first_post")) {
+                    awardBadge(userId, "first_post")
+                }
+            }
+
+            if (postCount >= 5) {
+                val userDoc = firestore.collection("users").document(userId).get().await()
+                val userProfile = userDoc.toObject(UserProfile::class.java)
+                if (userProfile != null && !userProfile.badges.contains("five_posts")) {
+                    awardBadge(userId, "five_posts")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error checking/awarding post badges for user $userId", e)
+        }
+    }
+
+    suspend fun voteOnPoll(postId: String, userId: String, option: String): Result<Unit> = withContext(dispatchers.io) {
+        try {
+            val postRef = postsCollection.document(postId)
+            firestore.runTransaction { transaction ->
+                val snapshot = transaction.get(postRef)
+                val pollDataRaw = snapshot.get("pollData")
+
+                check(pollDataRaw is Map<*, *>) { "No poll data found or invalid format" }
+                val pollData = pollDataRaw.entries
+                    .filter { it.key is String }
+                    .associate { it.key as String to it.value }
+
+                val optionsRaw = pollData["options"]
+                check(optionsRaw is List<*>) { "No poll options found or invalid format" }
+                val options = optionsRaw.filterIsInstance<String>()
+
+                val votesRaw = pollData["votes"]
+                val votes = if (votesRaw is Map<*, *>) {
+                    votesRaw.entries
+                        .filter { it.key is String && it.value is Number }
+                        .associate { it.key as String to (it.value as Number).toInt() }
+                        .toMutableMap()
+                } else {
+                    mutableMapOf<String, Int>()
+                }
+
+                require(option in options) { "Invalid poll option: $option" }
+
+                votes[option] = (votes[option] ?: 0) + 1
+
+                transaction.update(postRef, mapOf(
+                    "pollData" to mapOf(
+                        "description" to pollData["description"],
+                        "options" to options,
+                        "votes" to votes
+                    ),
+                    "hasUserVoted" to true
+                ))
+            }.await()
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error voting on poll: $e")
             Result.Failure(e)
         }
     }
@@ -303,7 +499,7 @@ class FirebaseRepository @Inject constructor(
                 CoroutineScope(dispatchers.io).launch {
                     val posts = snapshot?.documents?.mapNotNull { doc ->
                         try {
-                            doc.toObject(Post::class.java)
+                            doc.toObject(Post::class.java)?.copy()
                         } catch (e: Exception) {
                             Log.e("FirebaseRepository", "Error converting document to Post: ${e.message}", e)
                             null
@@ -314,9 +510,10 @@ class FirebaseRepository @Inject constructor(
                         async {
                             try {
                                 val userResult = getUserProfile(post.userId)
-                                when (userResult) {
+                                val result: PostWithUser? = when (userResult) {
                                     is Result.Success -> {
-                                        PostWithUser(post, userResult.data)
+                                        val user = userResult.data
+                                        PostWithUser(post, user)
                                     }
                                     is Result.Failure -> {
                                         Log.e(
@@ -325,10 +522,15 @@ class FirebaseRepository @Inject constructor(
                                         )
                                         null
                                     }
-                                    else -> {
+                                    is Result.Loading -> {
+                                        Log.d(
+                                            "FirebaseRepository",
+                                            "User profile loading for post: ${post.postId}"
+                                        )
                                         null
                                     }
                                 }
+                                result
                             } catch (e: Exception) {
                                 Log.e("FirebaseRepository", "Error getting user: ${e.message}", e)
                                 null
@@ -349,7 +551,7 @@ class FirebaseRepository @Inject constructor(
             try {
                 val postRef = postsCollection.document(postId)
                 firestore.runTransaction { transaction ->
-                    val post = transaction.get(postRef).toObject(Post::class.java)
+                    val post = transaction[postRef].toObject(Post::class.java)
                         ?: throw Exception("Post not found")
 
                     val newLikes = if (post.likes.contains(userId)) {
@@ -400,7 +602,7 @@ class FirebaseRepository @Inject constructor(
     }
     // endregion
 
-    // region Chats (Corrected - Add getUserProfile, remove toChatListItem)
+    // region Chats
     suspend fun createChat(currentUserUid: String, friendUid: String): String {
         val chatData = hashMapOf(
             "participants" to listOf(currentUserUid, friendUid),
@@ -418,14 +620,16 @@ class FirebaseRepository @Inject constructor(
             "lastMessage" to "",
             "lastMessageTimestamp" to FieldValue.serverTimestamp()
         )
-        batch.set(usersCollection.document(currentUserUid).collection("userChats").document(chatId), currentUserChatData)
+        batch[usersCollection.document(currentUserUid).collection("userChats").document(chatId)] =
+            currentUserChatData
 
         val friendChatData = hashMapOf(
             "otherUserId" to currentUserUid,
             "lastMessage" to "",
             "lastMessageTimestamp" to FieldValue.serverTimestamp()
         )
-        batch.set(usersCollection.document(friendUid).collection("userChats").document(chatId), friendChatData)
+        batch[usersCollection.document(friendUid).collection("userChats").document(chatId)] =
+            friendChatData
 
         batch.commit().await()
         return chatId
@@ -437,11 +641,9 @@ class FirebaseRepository @Inject constructor(
 
         return if (!querySnapshot.isEmpty) {
             querySnapshot.documents[0].id
-        } else{
-            null
-        }
+        } else null
     }
-    //THIS FLOWS THE CHATS
+
     fun getUserChatsFlow(userId: String): Flow<List<Chat>> = callbackFlow {
         val listenerRegistration = usersCollection.document(userId).collection("userChats")
             .addSnapshotListener { snapshot, error ->
@@ -452,25 +654,23 @@ class FirebaseRepository @Inject constructor(
 
                 if (snapshot != null) {
                     val chats = snapshot.documents.mapNotNull { doc ->
-                        doc.toChat(doc.id, userId) // Use the corrected toChat
+                        doc.toChat(doc.id, userId)
                     }
-                    trySend(chats).isSuccess //Try to send it
+                    trySend(chats).isSuccess
                 }
             }
-        awaitClose{listenerRegistration.remove()}
+        awaitClose { listenerRegistration.remove() }
     }.flowOn(dispatchers.io)
 
-    // Helper function to convert DocumentSnapshot to Chat, including current user
     private fun DocumentSnapshot.toChat(chatId: String, currentUserId: String): Chat? {
         return try {
             val otherUserId = getString("otherUserId") ?: return null
             val lastMessage = getString("lastMessage") ?: ""
             val lastMessageTimestamp = getTimestamp("lastMessageTimestamp")
 
-            // Include both current user and other user in participants
             Chat(
                 chatId = chatId,
-                participants = listOf(currentUserId, otherUserId), // Both users!
+                participants = listOf(currentUserId, otherUserId),
                 lastMessage = lastMessage,
                 lastMessageTimestamp = lastMessageTimestamp
             )
@@ -479,7 +679,6 @@ class FirebaseRepository @Inject constructor(
             null
         }
     }
-
 
     suspend fun sendMessage(message: Message): Result<Unit> = withContext(dispatchers.io) {
         try {
@@ -516,22 +715,20 @@ class FirebaseRepository @Inject constructor(
     suspend fun uploadChatImage(chatId: String, imageUri: Uri): Result<String> =
         withContext(dispatchers.io) {
             try {
-                val fileExtension = imageUri.getMimeType(context)?.substringAfterLast("/")?: "jpg"
-
-                val imageRef = storage.reference.child("chat_images").child(chatId).child("${UUID.randomUUID()}.$fileExtension") // Consistent path & UUID
+                val fileExtension = imageUri.getMimeType(context)?.substringAfterLast("/") ?: "jpg"
+                val imageRef = storage.reference.child("chat_images").child(chatId).child("${UUID.randomUUID()}.$fileExtension")
 
                 val uploadTask = imageRef.putFile(imageUri)
                 val snapshot = uploadTask.await()
                 val downloadUrl = snapshot.storage.downloadUrl.await().toString()
                 Result.Success(downloadUrl)
-
             } catch (e: Exception) {
                 Log.e("FirebaseRepository", "Error uploading chat image", e)
                 Result.Failure(e)
             }
         }
 
-    suspend fun markMessagesAsRead(chatId: String, userId: String): Result<Unit> = withContext(dispatchers.io){
+    suspend fun markMessagesAsRead(chatId: String, userId: String): Result<Unit> = withContext(dispatchers.io) {
         try {
             val messagesRef = firestore.collection("chats/$chatId/messages")
                 .whereNotEqualTo("senderId", userId)
@@ -545,39 +742,34 @@ class FirebaseRepository @Inject constructor(
             }
             batch.commit().await()
             Result.Success(Unit)
-
-        } catch (e: Exception){
+        } catch (e: Exception) {
             Result.Failure(e)
         }
     }
+
     fun getChatReference(chatId: String) = firestore.collection("chats").document(chatId)
 
-    //CORRECT WAY TO GET ALL USERS - KEEP, but not used for chats
-    suspend fun getAllUsers(): Result<List<UserProfile>> = withContext(dispatchers.io){
+    suspend fun getAllUsers(): Result<List<UserProfile>> = withContext(dispatchers.io) {
         try {
             val querySnapshot = firestore.collection("users").get().await()
             val users = querySnapshot.documents.mapNotNull { document ->
-                document.toObject(UserProfile::class.java) // Directly to UserProfile
+                document.toObject(UserProfile::class.java)
             }
             Result.Success(users)
         } catch (e: Exception) {
             Result.Failure(e)
         }
     }
-
     // endregion
 
-    // region Storage (Correct - As you provided)
+    // region Storage
     fun getStorageReference(): StorageReference = storage.reference
     // endregion
 }
+
 private fun Uri.getMimeType(context: Context): String? {
     return context.contentResolver.getType(this)
-    }
-
-//Trivia Game Functions
-
-
+}
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -596,8 +788,7 @@ interface TriviaApiService {
 
 class TriviaRepository @Inject constructor(
     private val apiService: TriviaApiService,
-    @ApplicationContext private val context: Context // Add @ApplicationContext
-
+    @ApplicationContext private val context: Context
 ) {
     suspend fun getQuestions(difficulty: String, category: String, questionCount: Int): List<Question> {
         val categoryId = getCategoryCode(category)
@@ -634,9 +825,8 @@ class TriviaRepository @Inject constructor(
             }
         }
     }
-
 }
-//Make the toQuestion() public
+
 fun TriviaResponse.Result.toQuestion(): Question {
     return Question(
         question = question,
@@ -645,8 +835,6 @@ fun TriviaResponse.Result.toQuestion(): Question {
     )
 }
 
-
-// Retrofit setup
 class TriviaRetrofit @Inject constructor() {
     fun createApiService(): TriviaApiService {
         return Retrofit.Builder()

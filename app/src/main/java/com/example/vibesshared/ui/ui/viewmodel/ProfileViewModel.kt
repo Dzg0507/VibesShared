@@ -1,63 +1,57 @@
 package com.example.vibesshared.ui.ui.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.firestore.FirebaseFirestore
+import com.example.vibesshared.ui.ui.data.Badge
+import com.example.vibesshared.ui.ui.data.UserProfile
+import com.example.vibesshared.ui.ui.di.DispatcherProvider
+import com.example.vibesshared.ui.ui.repository.BadgeRepository
+import com.example.vibesshared.ui.ui.repository.FirebaseRepository
+import com.example.vibesshared.ui.ui.utils.Result
+import com.example.vibesshared.ui.ui.viewmodel.ProfileViewModel.ProfileUiState.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 //Define a data class to model your User Profile
-data class UserProfile(
-    val userId: String = "",
-    val userName: String? = "",
-    val firstName: String? = "",
-    val lastName: String? = "",
-    val profilePictureUrl: String? = "",
-    val email: String? = "" // Add other fields as needed
-)
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firebaseRepository: FirebaseRepository,
+    private val badgeRepository: BadgeRepository, // Add BadgeRepository
+    private val dispatchers: DispatcherProvider
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
+    private val _uiState = MutableStateFlow<ProfileUiState>(Loading)
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     fun loadProfile(userId: String) {
-        viewModelScope.launch {
-            _uiState.value = ProfileUiState.Loading
-            try {
-                val userDocRef = firestore.collection("users").document(userId)
-                val userSnapshot = userDocRef.get().await()
-
-                if (userSnapshot.exists()) {
-                    val userProfile = userSnapshot.toObject(UserProfile::class.java)
-                    if (userProfile != null) {
-                        _uiState.value = ProfileUiState.Success(userProfile)
-                    }else{
-                        _uiState.value = ProfileUiState.Error("Failed to parse user data.")
+        viewModelScope.launch(dispatchers.io) {
+            _uiState.value = Loading
+            when (val result = firebaseRepository.getUserProfile(userId)) {
+                is Result.Success -> {
+                    val userProfile = result.data
+                    // Fetch badges for the user
+                    val badges = userProfile.badges.mapNotNull { badgeId ->
+                        badgeRepository.getBadge(badgeId)
                     }
-
-                } else {
-                    _uiState.value = ProfileUiState.Error("User profile not found.")
+                    _uiState.value = Success(userProfile, badges)
                 }
-            } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Error loading profile", e)
-                _uiState.value = ProfileUiState.Error("Failed to load profile: ${e.localizedMessage ?: "Unknown error"}")
+                is Result.Failure -> {
+                    _uiState.value = Error(result.exception.message ?: "Unknown error")
+                }
+                else -> {
+                    _uiState.value = Error("Unknown error")
+                } // No need to handle Result.Loading here
             }
         }
     }
 
-    // Sealed interface for UI states
-    sealed interface ProfileUiState {
-        object Loading : ProfileUiState
-        data class Success(val profile: UserProfile) : ProfileUiState
-        data class Error(val message: String) : ProfileUiState
+    sealed class ProfileUiState {
+        object Loading : ProfileUiState()
+        data class Success(val profile: UserProfile, val badges: List<Badge>) : ProfileUiState() // Include badges
+        data class Error(val message: String) : ProfileUiState()
     }
 }

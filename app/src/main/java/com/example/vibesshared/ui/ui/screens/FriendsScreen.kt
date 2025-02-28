@@ -39,16 +39,14 @@ import coil.compose.AsyncImage
 import com.example.vibesshared.ui.ui.data.FriendRequest
 import com.example.vibesshared.ui.ui.data.UserProfile
 import com.example.vibesshared.ui.ui.navigation.Screen
-import com.example.vibesshared.ui.ui.theme.ElectricPurple
-import com.example.vibesshared.ui.ui.theme.LimeGreen
+import com.example.vibesshared.ui.ui.theme.AppColors.ElectricPurple
+import com.example.vibesshared.ui.ui.theme.AppColors.LimeGreen
+import com.example.vibesshared.ui.ui.theme.AppColors.VividBlue
 import com.example.vibesshared.ui.ui.theme.NeonPink
-import com.example.vibesshared.ui.ui.theme.VividBlue
 import com.example.vibesshared.ui.ui.utils.Result
-import com.example.vibesshared.ui.ui.utils.Result.*
 import com.example.vibesshared.ui.ui.viewmodel.FriendsViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +60,7 @@ fun FriendsScreen(
     var searchQuery by remember { mutableStateOf("") }
     val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
     val snackbarHostState = remember { SnackbarHostState() }
-    val friendRequestStatuses = remember { mutableStateMapOf<String, Result<Unit>?>() }
+    val friendRequestStatuses by viewModel.friendRequestStatuses.collectAsState() // Use StateFlow for statuses
     val searchResults by viewModel.users.collectAsState()
     val friendsList by viewModel.friends.collectAsState()
     val receivedRequests by viewModel.receivedFriendRequests.collectAsState()
@@ -233,7 +231,7 @@ fun UserListContent(
     onExpandClick: (UserProfile) -> Unit,
     navController: NavController,
     viewModel: FriendsViewModel,
-    friendRequestStatuses: MutableMap<String, Result<Unit>?>
+    friendRequestStatuses: Map<String, Result<Unit>?>
 ) {
     LazyColumn(
         modifier = Modifier
@@ -317,7 +315,7 @@ fun FriendCard(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text(
-                            text = friend.userName?: "No Name",
+                            text = friend.userName ?: "No Name",
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontSize = if (isExpanded) 22.sp else 18.sp,
                                 fontWeight = FontWeight.Bold
@@ -334,22 +332,27 @@ fun FriendCard(
 
                 if (!isFriendTab) {
                     val icon = when (friendRequestStatus) {
-                        is Loading -> Icons.Filled.Refresh
-                        is Success -> Icons.Filled.Check
-                        is Failure -> Icons.Filled.Error
-                        null -> Icons.Default.PersonAdd
+                        is Result.Loading -> Icons.Filled.Refresh // Loading state
+                        is Result.Success -> Icons.Filled.Check // Request sent successfully
+                        is Result.Failure -> Icons.Filled.Error // Request failed
+                        null -> Icons.Default.PersonAdd // No request sent yet
                     }
 
                     Icon(
                         imageVector = icon,
-                        contentDescription = "Add Friend",
+                        contentDescription = if (friendRequestStatus == null) "Add Friend" else "Request Status",
                         tint = Color.Black,
                         modifier = Modifier
                             .align(Alignment.CenterVertically)
                             .padding(top = 16.dp)
-                            .clickable(enabled = friendRequestStatus == null) {
-                                viewModel.sendFriendRequest(friend.userId)
-                            }
+                            .clickable(
+                                enabled = friendRequestStatus == null, // Disable if request is sent or in progress
+                                onClick = {
+                                    viewModel.sendFriendRequest(friend.userId)
+                                    // Reset status after action (optional, for UI feedback)
+                                    viewModel.resetFriendRequestStatus(friend.userId)
+                                }
+                            )
                     )
                 }
             }
@@ -424,8 +427,8 @@ fun RequestCard(
             .document(request.senderId)
             .get()
             .await()
-        senderName = senderDoc.getString("userName")?: "Unknown"
-        senderAvatar = senderDoc.getString("profilePictureUrl")?: ""
+        senderName = senderDoc.getString("userName") ?: "Unknown"
+        senderAvatar = senderDoc.getString("profilePictureUrl") ?: ""
     }
 
     Card(

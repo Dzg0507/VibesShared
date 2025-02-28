@@ -14,25 +14,31 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.vibesshared.ui.ui.components.HolographicProfile
-import com.example.vibesshared.ui.ui.theme.AppColors
+import com.example.vibesshared.ui.ui.data.Badge
+import com.example.vibesshared.ui.ui.data.UserProfile
+import com.example.vibesshared.ui.ui.theme.AppColors.LimeGreen
+import com.example.vibesshared.ui.ui.theme.AppColors.SunsetOrange
+import com.example.vibesshared.ui.ui.theme.AppColors.VividBlue
+import com.example.vibesshared.ui.ui.theme.NeonPink
 import com.example.vibesshared.ui.ui.viewmodel.ProfileViewModel
+
 
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    userId: String, // Get userId from navigation arguments
+    userId: String,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Load the profile when the screen is created or userId changes
     LaunchedEffect(userId) {
         viewModel.loadProfile(userId)
     }
 
     var animateIn by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit){ animateIn = true}
+    LaunchedEffect(Unit) { animateIn = true }
 
     Box(modifier = Modifier.fillMaxSize()) {
         when (uiState) {
@@ -41,7 +47,8 @@ fun ProfileScreen(
             }
             is ProfileViewModel.ProfileUiState.Success -> {
                 val profile = (uiState as ProfileViewModel.ProfileUiState.Success).profile
-                ProfileContent(profile, animateIn) // Show the profile content
+                val badges = (uiState as ProfileViewModel.ProfileUiState.Success).badges
+                ProfileContent(profile, badges, animateIn)
             }
             is ProfileViewModel.ProfileUiState.Error -> {
                 val errorMessage = (uiState as ProfileViewModel.ProfileUiState.Error).message
@@ -54,9 +61,9 @@ fun ProfileScreen(
         }
     }
 }
-@Composable
-fun ProfileContent(profile: com.example.vibesshared.ui.ui.viewmodel.UserProfile, animateIn: Boolean){
 
+@Composable
+fun ProfileContent(profile: UserProfile, badges: List<Badge>, animateIn: Boolean) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -84,7 +91,7 @@ fun ProfileContent(profile: com.example.vibesshared.ui.ui.viewmodel.UserProfile,
 
         AnimatedOutlinedTextField(
             value = profile.userName ?: "N/A",
-            onValueChange = { },
+            onValueChange = {},
             label = "Username",
             isEditMode = false,
             animateIn = animateIn,
@@ -96,7 +103,7 @@ fun ProfileContent(profile: com.example.vibesshared.ui.ui.viewmodel.UserProfile,
 
         AnimatedOutlinedTextField(
             value = profile.firstName ?: "N/A",
-            onValueChange = { },
+            onValueChange = {},
             label = "First Name",
             isEditMode = false,
             animateIn = animateIn,
@@ -108,7 +115,7 @@ fun ProfileContent(profile: com.example.vibesshared.ui.ui.viewmodel.UserProfile,
 
         AnimatedOutlinedTextField(
             value = profile.lastName ?: "N/A",
-            onValueChange = {  },
+            onValueChange = {},
             label = "Last Name",
             isEditMode = false,
             animateIn = animateIn,
@@ -121,13 +128,32 @@ fun ProfileContent(profile: com.example.vibesshared.ui.ui.viewmodel.UserProfile,
         AnimatedText(
             text = "Last Post: Coming Soon!",
             style = MaterialTheme.typography.bodyMedium,
-            color = AppColors.LimeGreen.color,
+            color = LimeGreen,
             animateIn = animateIn,
             delayMillis = 1463,
             fromTop = false
         )
-    }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Badges:",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            badges.forEach { badge ->
+                AsyncImage(
+                    model = badge.imageUrl,
+                    contentDescription = badge.name,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -230,11 +256,11 @@ private fun AnimatedOutlinedTextField(
                     translationX = with(density) { animatedOffsetX.toPx() }
                 },
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = AppColors.LimeGreen.color,
-                unfocusedTextColor = AppColors.VividBlue.color,
-                focusedBorderColor = AppColors.SunsetOrange.color,
-                unfocusedBorderColor = AppColors.NeonPink.color,
-                cursorColor = AppColors.LimeGreen.color, // Cursor color
+                focusedTextColor = LimeGreen,
+                unfocusedTextColor = VividBlue,
+                focusedBorderColor = SunsetOrange,
+                unfocusedBorderColor = NeonPink,
+                cursorColor = LimeGreen, // Cursor color
             ),
             shape = RoundedCornerShape(8.dp),
             readOnly = true
