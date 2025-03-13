@@ -12,21 +12,27 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.example.vibesshared.ui.ui.data.*
 import com.example.vibesshared.ui.ui.di.DispatcherProvider
 import com.example.vibesshared.ui.ui.utils.Result
+import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.firestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -45,7 +51,8 @@ class FirebaseRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
     private val storage: FirebaseStorage,
-    private val dispatchers: DispatcherProvider
+    private val dispatchers: DispatcherProvider,
+    private val storageRepository: StorageRepository // Inject StorageRepository
 ) {
     private val usersCollection = firestore.collection("users")
     private val friendRequestsCollection = firestore.collection("friendRequests")
@@ -61,25 +68,6 @@ class FirebaseRepository @Inject constructor(
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Failure(e)
-        }
-    }
-    suspend fun migratePostImages(db: FirebaseFirestore) {
-        try {
-            val posts = db.collection("posts").get().await()
-            posts.documents.forEach { doc ->
-                val postImage = doc.getString("postImage")
-                if (postImage != null) {
-                    db.collection("posts").document(doc.id)
-                        .update(mapOf(
-                            "postImages" to listOf(postImage),
-                            "postImage" to FieldValue.delete()
-                        ))
-                        .await()
-                    Log.d("FirebaseRepository", "Migrated postImage to postImages for document ${doc.id}")
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("FirebaseRepository", "Error migrating post images: ${e.message}", e)
         }
     }
 
@@ -165,26 +153,28 @@ class FirebaseRepository @Inject constructor(
         awaitClose { listener.remove() }
     }.flowOn(dispatchers.io)
 
-    suspend fun getUserProfile(userId: String): Result<UserProfile> =
-        withContext(dispatchers.io) {
-            Log.d("FirebaseRepository", "getUserProfile called for userId: $userId")
-            try {
-                val doc = usersCollection.document(userId).get().await()
-                Log.d("FirebaseRepository", "getUserProfile: Document snapshot: $doc")
-                val userProfile = doc.toObject(UserProfile::class.java)
-                Log.d("FirebaseRepository", "getUserProfile: User profile: $userProfile")
-                if (userProfile != null) {
-                    Result.Success(userProfile)
-                } else {
-                    val errorMessage = "User profile does not exist or failed to parse for userId: $userId"
-                    Log.e("FirebaseRepository", errorMessage)
-                    Result.Failure(Exception(errorMessage))
-                }
-            } catch (e: Exception) {
-                Log.e("FirebaseRepository", "getUserProfile: Error getting user profile for userId: $userId", e)
-                Result.Failure(e)
+    private val userProfileCache = mutableMapOf<String, UserProfile>()
+
+    // Updated getUserProfile with caching
+    suspend fun getUserProfile(userId: String): Result<UserProfile> = withContext(dispatchers.io) {
+        try {
+            // Check cache first
+            userProfileCache[userId]?.let {
+                return@withContext Result.Success(it)
             }
+
+            val snapshot = firestore.collection("users").document(userId).get().await()
+            if (snapshot.exists()) {
+                val userProfile = snapshot.toObject(UserProfile::class.java) ?: throw Exception("User profile not found")
+                userProfileCache[userId] = userProfile // Cache the result
+                Result.Success(userProfile)
+            } else {
+                Result.Failure(Exception("User not found"))
+            }
+        } catch (e: Exception) {
+            Result.Failure(e)
         }
+    }
 
     suspend fun getFriends(userId: String): Result<List<UserProfile>> = withContext(dispatchers.io) {
         try {
@@ -340,10 +330,13 @@ class FirebaseRepository @Inject constructor(
         postText: String,
         postImages: List<String?> = emptyList(),
         postVideo: String? = null,
-        pollData: Map<String, Any>? = null
+        pollData: Map<String, Any?>? = null,
+        imageDescription: String = "",
+        videoDescription: String = "",
+        thumbnailUrl: String? = null // Add thumbnail URL parameter
     ): Result<String> = withContext(dispatchers.io) {
         try {
-            Log.d("FirebaseRepository", "Creating post for user $userId, postImages: $postImages, postVideo: $postVideo, pollData: $pollData")
+            Log.d("FirebaseRepository", "Creating post for user $userId, postImages: $postImages, postVideo: $postVideo, pollData: $pollData, imageDescription: $imageDescription, videoDescription: $videoDescription, thumbnailUrl: $thumbnailUrl")
             val postData = mapOf(
                 "userId" to userId,
                 "postText" to postText,
@@ -353,7 +346,9 @@ class FirebaseRepository @Inject constructor(
                 "userName" to null,
                 "timestamp" to Timestamp.now(),
                 "pollData" to pollData,
-                "hasUserVoted" to false
+                "imageDescription" to imageDescription, // Add image description
+                "videoDescription" to videoDescription, // Add video description
+                "thumbnailUrl" to thumbnailUrl // Add thumbnail URL
             )
             val postRef = firestore.collection("posts").add(postData).await()
             incrementUserPostCount(userId)
@@ -365,7 +360,6 @@ class FirebaseRepository @Inject constructor(
             Result.Failure(e)
         }
     }
-
     private suspend fun incrementUserPostCount(userId: String) = withContext(dispatchers.io) {
         try {
             firestore.collection("users").document(userId).update(
@@ -486,17 +480,26 @@ class FirebaseRepository @Inject constructor(
             Result.Failure(e)
         }
     }
-
     fun getPostsWithUsersFlow(): Flow<List<PostWithUser>> = callbackFlow {
+        var lastEmitTime = 0L
+        val debounceDelayMs = 500L // Debounce to prevent rapid updates
+
         val listener = postsCollection
             .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    Log.e("FirebaseRepository", "Snapshot listener error: ${error.message}")
+                    trySend(emptyList()) // Fallback to empty list on error
                     return@addSnapshotListener
                 }
 
-                CoroutineScope(dispatchers.io).launch {
+                CoroutineScope(dispatchers.io + CoroutineExceptionHandler { _, throwable ->
+                    Log.e("FirebaseRepository", "Coroutine failed in snapshot listener: ${throwable.message}", throwable)
+                    trySend(emptyList()) // Fallback on coroutine failure
+                }).launch {
+                    val currentTime = System.currentTimeMillis()
+                    if (currentTime - lastEmitTime < debounceDelayMs) return@launch
+
                     val posts = snapshot?.documents?.mapNotNull { doc ->
                         try {
                             doc.toObject(Post::class.java)?.copy()
@@ -505,6 +508,12 @@ class FirebaseRepository @Inject constructor(
                             null
                         }
                     } ?: emptyList()
+
+                    val currentUserId = Firebase.auth.currentUser?.uid
+                    if (currentUserId == null) {
+                        trySend(emptyList())
+                        return@launch
+                    }
 
                     val deferredPosts = posts.map { post ->
                         async {
@@ -539,12 +548,24 @@ class FirebaseRepository @Inject constructor(
                     }
 
                     val postsWithUsers = deferredPosts.awaitAll().filterNotNull()
+                    lastEmitTime = currentTime
                     trySend(postsWithUsers)
                 }
             }
 
         awaitClose { listener.remove() }
-    }.flowOn(dispatchers.io)
+    }.flowOn(dispatchers.io).distinctUntilChanged().catch { exception ->
+        Log.e("FirebaseRepository", "Flow error: ${exception.message}", exception)
+        emit(emptyList()) // Emit empty list on any flow error
+    }
+
+    // Helper function to check if the user has voted
+    private suspend fun checkUserVoted(postId: String, userId: String): Boolean = withContext(dispatchers.io) {
+        val firestore = Firebase.firestore
+        val voteDoc = firestore.collection("posts").document(postId)
+            .collection("votes").document(userId).get().await()
+        voteDoc.exists() // Returns true if the user has a vote document for this post
+    }
 
     suspend fun toggleLike(postId: String, userId: String): Result<Unit> =
         withContext(dispatchers.io) {
@@ -680,17 +701,7 @@ class FirebaseRepository @Inject constructor(
         }
     }
 
-    suspend fun sendMessage(message: Message): Result<Unit> = withContext(dispatchers.io) {
-        try {
-            chatsCollection.document(message.chatId)
-                .collection("messages")
-                .add(message)
-                .await()
-            Result.Success(Unit)
-        } catch (e: Exception) {
-            Result.Failure(e)
-        }
-    }
+
 
     fun getMessagesFlow(chatId: String): Flow<List<Message>> = callbackFlow {
         val listener = chatsCollection.document(chatId)
@@ -712,21 +723,112 @@ class FirebaseRepository @Inject constructor(
         awaitClose { listener.remove() }
     }
 
-    suspend fun uploadChatImage(chatId: String, imageUri: Uri): Result<String> =
+    suspend fun verifyChatParticipation(chatId: String, userId: String): Boolean {
+        return try {
+            val chatDoc = chatsCollection.document(chatId).get().await()
+            if (!chatDoc.exists()) {
+                Log.e("FirebaseRepository", "Chat document not found for chatId: $chatId")
+                return false
+            }
+            val participants = chatDoc.get("participants") as? List<String> ?: emptyList()
+            val isParticipant = userId in participants
+            Log.d("FirebaseRepository", "User $userId is${if (isParticipant) "" else " not"} a participant in chatId: $chatId, participants: $participants")
+            isParticipant
+        } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error verifying chat participation for chatId: $chatId, userId: $userId: ${e.message}", e)
+            false
+        }
+    }
+
+    suspend fun uploadChatImage(chatId: String, messageId: String, imageUri: Uri): Result<String> =
         withContext(dispatchers.io) {
+            val currentUserId = auth.currentUser?.uid ?: return@withContext Result.Failure(Exception("User not authenticated"))
+            Log.d("FirebaseRepository", "Starting image upload for chatId: $chatId, messageId: $messageId, userId: $currentUserId, expecting auto-created folder: chatMedia")
+
+            // Verify chat participation and log Storage folder
+            if (!verifyChatParticipation(chatId, currentUserId)) {
+                Log.e("FirebaseRepository", "User $currentUserId is not a participant in chatId: $chatId, aborting image upload")
+                return@withContext Result.Failure(Exception("User is not a participant in chat: $chatId"))
+            }
+
+            Log.d("FirebaseRepository", "Verified user participation, proceeding with image upload for chatId: $chatId, expecting auto-created folder: chatMedia")
+            Log.d("FirebaseRepository", "Auth token for upload: ${auth.currentUser?.getIdToken(false)?.await()}")
+            Log.d("FirebaseRepository", "Storage bucket: ${storage.reference.bucket}")
+
+            Log.d("FirebaseRepository", "Delegating image upload to StorageRepository for path: chatMedia/$chatId/$messageId, expecting auto-creation")
             try {
                 val fileExtension = imageUri.getMimeType(context)?.substringAfterLast("/") ?: "jpg"
-                val imageRef = storage.reference.child("chat_images").child(chatId).child("${UUID.randomUUID()}.$fileExtension")
-
-                val uploadTask = imageRef.putFile(imageUri)
-                val snapshot = uploadTask.await()
-                val downloadUrl = snapshot.storage.downloadUrl.await().toString()
+                val destinationPath = "chatMedia/$chatId/$messageId"
+                Log.d("FirebaseRepository", "Destination path for image: $destinationPath, checking for auto-creation")
+                val downloadUrl = storageRepository.uploadImage(imageUri, destinationPath)
+                if (downloadUrl == null) {
+                    Log.e("FirebaseRepository", "StorageRepository failed to upload image for chatId: $chatId, messageId: $messageId")
+                    return@withContext Result.Failure(Exception("Failed to upload image via StorageRepository"))
+                }
+                Log.d("FirebaseRepository", "Image uploaded successfully via StorageRepository, URL: $downloadUrl, to auto-created folder: chatMedia, for chatId: $chatId, messageId: $messageId")
                 Result.Success(downloadUrl)
             } catch (e: Exception) {
-                Log.e("FirebaseRepository", "Error uploading chat image", e)
+                Log.e("FirebaseRepository", "Error uploading chat image for chatId: $chatId, messageId: $messageId: ${e.message}", e)
                 Result.Failure(e)
             }
         }
+
+    suspend fun uploadChatVideo(chatId: String, messageId: String, videoUri: Uri): Result<String> =
+        withContext(dispatchers.io) {
+            val currentUserId = auth.currentUser?.uid ?: return@withContext Result.Failure(Exception("User not authenticated"))
+            Log.d("FirebaseRepository", "Starting video upload for chatId: $chatId, messageId: $messageId, userId: $currentUserId, expecting auto-created folder: chatMedia")
+
+            // Verify chat participation and log Storage folder
+            if (!verifyChatParticipation(chatId, currentUserId)) {
+                Log.e("FirebaseRepository", "User $currentUserId is not a participant in chatId: $chatId, aborting video upload")
+                return@withContext Result.Failure(Exception("User is not a participant in chat: $chatId"))
+            }
+
+            Log.d("FirebaseRepository", "Verified user participation, proceeding with video upload for chatId: $chatId, expecting auto-created folder: chatMedia")
+            Log.d("FirebaseRepository", "Auth token for upload: ${auth.currentUser?.getIdToken(false)?.await()}")
+            Log.d("FirebaseRepository", "Storage bucket: ${storage.reference.bucket}")
+
+            Log.d("FirebaseRepository", "Delegating video upload to StorageRepository for path: chatMedia/$chatId/$messageId, expecting auto-creation")
+            try {
+                val fileExtension = videoUri.getMimeType(context)?.substringAfterLast("/") ?: "mp4"
+                val destinationPath = "chatMedia/$chatId/$messageId"
+                Log.d("FirebaseRepository", "Destination path for video: $destinationPath, checking for auto-creation")
+                val downloadUrl = storageRepository.uploadVideo(videoUri, destinationPath)
+                if (downloadUrl == null) {
+                    Log.e("FirebaseRepository", "StorageRepository failed to upload video for chatId: $chatId, messageId: $messageId")
+                    return@withContext Result.Failure(Exception("Failed to upload video via StorageRepository"))
+                }
+                Log.d("FirebaseRepository", "Video uploaded successfully via StorageRepository, URL: $downloadUrl, to auto-created folder: chatMedia, for chatId: $chatId, messageId: $messageId")
+                Result.Success(downloadUrl)
+            } catch (e: Exception) {
+                Log.e("FirebaseRepository", "Error uploading chat video for chatId: $chatId, messageId: $messageId: ${e.message}", e)
+                Result.Failure(e)
+            }
+        }
+
+    suspend fun sendMessage(message: Message): Result<Unit> = withContext(dispatchers.io) {
+        val currentUserId = auth.currentUser?.uid ?: return@withContext Result.Failure(Exception("User not authenticated"))
+        Log.d("FirebaseRepository", "Sending message for chatId: ${message.chatId}, messageId: ${message.messageId}, userId: $currentUserId, type: ${message.type}")
+
+        // Verify chat participation before sending
+        if (!verifyChatParticipation(message.chatId, currentUserId)) {
+            Log.e("FirebaseRepository", "User $currentUserId is not a participant in chatId: ${message.chatId}, aborting message send")
+            return@withContext Result.Failure(Exception("User is not a participant in chat: ${message.chatId}"))
+        }
+
+        try {
+            val messageRef = chatsCollection.document(message.chatId).collection("messages").document(message.messageId)
+            val messageData = message.toFirestoreMap()
+            Log.d("FirebaseRepository", "Creating message document at Firestore path: chats/${message.chatId}/messages/${message.messageId}")
+            messageRef.set(messageData, SetOptions.merge()).await()
+            Log.d("FirebaseRepository", "Message sent successfully, Firestore path: chats/${message.chatId}/messages/${message.messageId}")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error sending message for chatId: ${message.chatId}, messageId: ${message.messageId}: ${e.message}", e)
+            Result.Failure(e)
+        }
+    }
+
 
     suspend fun markMessagesAsRead(chatId: String, userId: String): Result<Unit> = withContext(dispatchers.io) {
         try {
@@ -771,76 +873,4 @@ private fun Uri.getMimeType(context: Context): String? {
     return context.contentResolver.getType(this)
 }
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-interface TriviaApiService {
-    @GET("api.php")
-    suspend fun getQuestions(
-        @retrofit2.http.Query("amount") amount: Int = 10,
-        @retrofit2.http.Query("difficulty") difficulty: String = "easy",
-        @retrofit2.http.Query("category") category: Int? = null,
-        @retrofit2.http.Query("type") type: String = "multiple"
-    ): TriviaResponse
-
-    @GET("api_daily_challenge.php")
-    suspend fun getDailyChallengeQuestions(): TriviaResponse
-}
-
-class TriviaRepository @Inject constructor(
-    private val apiService: TriviaApiService,
-    @ApplicationContext private val context: Context
-) {
-    suspend fun getQuestions(difficulty: String, category: String, questionCount: Int): List<Question> {
-        val categoryId = getCategoryCode(category)
-        val response =
-            apiService.getQuestions(amount = questionCount, difficulty = difficulty, category = categoryId)
-        return response.results.map { it.toQuestion() }
-    }
-
-    suspend fun getDailyChallengeQuestions(): List<Question> {
-        val response = apiService.getDailyChallengeQuestions()
-        return response.results.map { it.toQuestion() }
-    }
-
-    private fun getCategoryCode(category: String): Int? {
-        return when (category) {
-            "science" -> 17
-            "history" -> 23
-            else -> null
-        }
-    }
-
-    suspend fun saveLeaderboard(scores: List<Int>) {
-        context.dataStore.edit { preferences ->
-            scores.forEachIndexed { index, score ->
-                preferences[intPreferencesKey("score_$index")] = score
-            }
-        }
-    }
-
-    fun getLeaderboard(): Flow<List<Int>> {
-        return context.dataStore.data.map { preferences ->
-            (0..4).mapNotNull { index ->
-                preferences[intPreferencesKey("score_$index")]
-            }
-        }
-    }
-}
-
-fun TriviaResponse.Result.toQuestion(): Question {
-    return Question(
-        question = question,
-        correctAnswer = correct_answer,
-        incorrectAnswers = incorrect_answers
-    )
-}
-
-class TriviaRetrofit @Inject constructor() {
-    fun createApiService(): TriviaApiService {
-        return Retrofit.Builder()
-            .baseUrl("https://opentdb.com/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(TriviaApiService::class.java)
-    }
-}

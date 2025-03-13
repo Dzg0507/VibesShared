@@ -7,7 +7,6 @@ import androidx.navigation.NavHostController
 import com.example.vibesshared.ui.ui.navigation.Screen
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
 
-
 @Composable
 fun AuthNavigationHandler(
     navController: NavHostController,
@@ -30,8 +29,7 @@ fun AuthNavigationHandler(
                     if (currentRoute !in listOf(
                             Screen.Login.route,
                             Screen.CreateAccount.route,
-                            Screen.ForgotPassword.route,
-                            Screen.Splash.route
+                            Screen.ForgotPassword.route
                         )) {
                         Log.d("AuthNavigation", "Navigating to Login from $currentRoute")
                         navController.navigate(Screen.Login.route) {
@@ -41,12 +39,12 @@ fun AuthNavigationHandler(
                 }
 
                 is AuthState.Error -> {
-                    // We *don't* navigate away on error.  The Login/CreateAccount
-                    // screens are responsible for *displaying* the error message
-                    // to the user (which you're already doing).  We just stay put.
+                    // We *don't* navigate away on error. The Login/CreateAccount
+                    // screens are responsible for displaying the error message
+                    // to the user (which you're already doing). We just stay put.
                     Log.d("AuthNavigation", "Auth error: ${authState.message}")
                 }
-                else -> {} //Do nothing
+                else -> {} // Do nothing
             }
         }
     }

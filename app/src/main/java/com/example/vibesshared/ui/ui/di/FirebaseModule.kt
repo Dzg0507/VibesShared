@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.example.vibesshared.ui.ui.repository.BadgeRepository
 import com.example.vibesshared.ui.ui.repository.FirebaseRepository
+import com.example.vibesshared.ui.ui.repository.StorageRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -23,20 +24,20 @@ import javax.inject.Singleton
 object FirebaseModule {
     @Provides
     @Singleton
-    fun provideFirebaseAuth(): FirebaseAuth = Firebase.auth
+    fun provideFirebaseAuth(): FirebaseAuth = Firebase.auth // Used indirectly via FirebaseRepository in AuthViewModel and ChatsViewModel
 
     @Provides
     @Singleton
-    fun provideFirebaseFirestore(): FirebaseFirestore = Firebase.firestore
+    fun provideFirebaseFirestore(): FirebaseFirestore = Firebase.firestore // Used indirectly via FirebaseRepository and BadgeRepository
 
     @Provides
     @Singleton
-    fun provideFirebaseStorage(): FirebaseStorage = Firebase.storage
+    fun provideFirebaseStorage(): FirebaseStorage = Firebase.storage // Used indirectly via FirebaseRepository and StorageRepository
 
     @Provides
     @Singleton
     fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
-        return context.getSharedPreferences("my_app_prefs", Context.MODE_PRIVATE)
+        return context.getSharedPreferences("my_app_prefs", Context.MODE_PRIVATE) // Used in AuthViewModel for SharedPreferences
     }
 
     @Provides
@@ -46,9 +47,10 @@ object FirebaseModule {
         firestore: FirebaseFirestore,
         auth: FirebaseAuth,
         storage: FirebaseStorage,
-        dispatcherProvider: DispatcherProvider
+        dispatchers: DispatcherProvider,
+        storageRepository: StorageRepository // Ensure this is injected and used
     ): FirebaseRepository {
-        return FirebaseRepository(context, firestore, auth, storage, dispatcherProvider)
+        return FirebaseRepository(context, firestore, auth, storage, dispatchers, storageRepository) // Used in AuthViewModel and ChatsViewModel
     }
 
     @Provides
@@ -57,6 +59,6 @@ object FirebaseModule {
         firestore: FirebaseFirestore,
         dispatcherProvider: DispatcherProvider
     ): BadgeRepository {
-        return BadgeRepository(firestore, dispatcherProvider)
+        return BadgeRepository(firestore, dispatcherProvider) // Used in MainActivity via BadgeInitializer
     }
 }

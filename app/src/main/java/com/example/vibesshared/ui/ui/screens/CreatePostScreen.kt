@@ -1,6 +1,8 @@
 package com.example.vibesshared.ui.ui.screens
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.vibesshared.ui.ui.components.FloatingParticlesBackground
@@ -40,20 +43,24 @@ import com.example.vibesshared.ui.ui.theme.NeonPink
 import com.example.vibesshared.ui.ui.theme.NeonYellow
 import com.example.vibesshared.ui.ui.viewmodel.PostViewModel
 import com.example.vibesshared.ui.ui.viewmodel.PostViewModel.PostCreationStatus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
+@UnstableApi
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun CreatePostScreen(
     navController: NavController,
-    viewModel: PostViewModel = hiltViewModel()
+    viewModel: PostViewModel = hiltViewModel(),
 ) {
     var postText by remember { mutableStateOf("") }
     var isPosting by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    val uploadProgress by viewModel.uploadProgress.collectAsState()
+    val uploadProgress by viewModel.uploadProgress.collectAsState() // Collect upload progress from ViewModel
     val postCreationStatus by viewModel.postCreationStatus.collectAsState()
     val selectedImages by viewModel.selectedImages.collectAsState()
     val scope = rememberCoroutineScope()
@@ -61,8 +68,10 @@ fun CreatePostScreen(
 
     // Vibe Type Selection
     var selectedVibeType by remember { mutableStateOf(VibeType.Text) }
-    var pollOptions by remember { mutableStateOf(listOf("", "")) } // Minimum 2 options for Poll Vibe
+    var pollOptions by remember { mutableStateOf(listOf("", "")) } // Minimum 2 options for Poll
     var selectedVideoUri by remember { mutableStateOf<Uri?>(null) }
+    var imageDescription by remember { mutableStateOf("") } // Description for images
+    var videoDescription by remember { mutableStateOf("") } // Description for videos
 
     // Launchers for Image and Video
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -89,8 +98,8 @@ fun CreatePostScreen(
         scope.launch {
             when (selectedVibeType) {
                 VibeType.Text -> viewModel.addPost(postText, emptyList(), context)
-                VibeType.Image -> viewModel.addPost(postText, selectedImages, context)
-                VibeType.Video -> viewModel.addPost(postText, emptyList(), context, selectedVideoUri)
+                VibeType.Image -> viewModel.addPost(postText, selectedImages, context, imageDescription = imageDescription)
+                VibeType.Video -> viewModel.addPost(postText, emptyList(), context, videoUri = selectedVideoUri, videoDescription = videoDescription)
                 VibeType.Poll -> viewModel.addPollPost(postText, pollOptions.filter { it.isNotBlank() })
             }
         }
@@ -150,13 +159,18 @@ fun CreatePostScreen(
                         selectedImages,
                         onAddImage = { if (!isPosting) imagePicker.launch("image/*") },
                         onRemoveImage = { if (!isPosting) scope.launch { viewModel.removeImage(it) } },
+                        imageDescription,
+                        onDescriptionChange = { if (!isPosting) imageDescription = it },
                         isPosting
                     )
                     VibeType.Video -> VideoVibeInput(
                         selectedVideoUri,
                         onSelectVideo = { if (!isPosting) videoPicker.launch("video/*") },
                         onRemoveVideo = { if (!isPosting) selectedVideoUri = null },
-                        isPosting
+                        videoDescription,
+                        onDescriptionChange = { if (!isPosting) videoDescription = it },
+                        isPosting,
+                        uploadProgress // Pass upload progress to VideoVibeInput
                     )
                     VibeType.Poll -> PollVibeInput(
                         pollDescription = postText,
@@ -280,13 +294,16 @@ fun ImageVibeInput(
     selectedImages: List<Uri>,
     onAddImage: () -> Unit,
     onRemoveImage: (Uri) -> Unit,
-    isPosting: Boolean
+    imageDescription: String,
+    onDescriptionChange: (String) -> Unit,
+    isPosting: Boolean,
 ) {
     Column {
+        // Text field for image description
         TextField(
-            value = "",
-            onValueChange = {},
-            enabled = false,
+            value = imageDescription,
+            onValueChange = onDescriptionChange,
+            enabled = !isPosting,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(100.dp)
@@ -294,13 +311,15 @@ fun ImageVibeInput(
                 .border(2.dp, NeonGreen, RoundedCornerShape(16.dp)),
             placeholder = { Text("Add a caption to your images...", color = NeonBlue) },
             colors = TextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                disabledTextColor = Color.Gray,
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 disabledContainerColor = Color.Transparent,
-                disabledTextColor = Color.Gray,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White
-            )
+                cursorColor = NeonGreen
+            ),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
         )
         Spacer(modifier = Modifier.height(16.dp))
         LazyRow(
@@ -352,13 +371,57 @@ fun VideoVibeInput(
     selectedVideoUri: Uri?,
     onSelectVideo: () -> Unit,
     onRemoveVideo: () -> Unit,
-    isPosting: Boolean
+    videoDescription: String,
+    onDescriptionChange: (String) -> Unit,
+    isPosting: Boolean,
+    uploadProgress: Float // Parameter for upload progress
 ) {
+    val context = LocalContext.current
+    var thumbnailBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var uploadingText by remember { mutableStateOf("Uploading") }
+
+    // Animate the "Uploading" text with moving dots
+    LaunchedEffect(isPosting) {
+        if (isPosting) {
+            while (true) {
+                delay(500)
+                uploadingText = when (uploadingText) {
+                    "Uploading" -> "Uploading."
+                    "Uploading." -> "Uploading.."
+                    "Uploading.." -> "Uploading..."
+                    else -> "Uploading"
+                }
+            }
+        } else {
+            uploadingText = "Uploading" // Reset when not posting
+        }
+    }
+
+    // Load video thumbnail
+    LaunchedEffect(selectedVideoUri) {
+        thumbnailBitmap = if (selectedVideoUri != null) {
+            withContext(Dispatchers.IO) {
+                val retriever = MediaMetadataRetriever()
+                try {
+                    retriever.setDataSource(context, selectedVideoUri)
+                    retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                } catch (e: Exception) {
+                    null
+                } finally {
+                    retriever.release()
+                }
+            }
+        } else {
+            null
+        }
+    }
+
     Column {
+        // Text field for video description
         TextField(
-            value = "",
-            onValueChange = {},
-            enabled = false,
+            value = videoDescription,
+            onValueChange = onDescriptionChange,
+            enabled = !isPosting,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(100.dp)
@@ -366,22 +429,22 @@ fun VideoVibeInput(
                 .border(2.dp, NeonYellow, RoundedCornerShape(16.dp)),
             placeholder = { Text("Add a caption to your video...", color = NeonBlue) },
             colors = TextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                disabledTextColor = Color.Gray,
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 disabledContainerColor = Color.Transparent,
-                disabledTextColor = Color.Gray,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White
-            )
+                cursorColor = NeonGreen
+            ),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)) {
+        Box(modifier = Modifier.size(100.dp)) {
             if (selectedVideoUri != null) {
                 AsyncImage(
-                    model = selectedVideoUri,
-                    contentDescription = "Selected Video",
+                    model = thumbnailBitmap ?: selectedVideoUri,
+                    contentDescription = "Selected Video Thumbnail",
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(12.dp))
@@ -410,6 +473,26 @@ fun VideoVibeInput(
                 }
             }
         }
+
+        // Show uploading text and progress bar when posting
+        if (isPosting && selectedVideoUri != null) {
+            Spacer(modifier = Modifier.height(8.dp)) // Space between video and loading elements
+            Text(
+                text = uploadingText,
+                color = NeonGreen,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+            Spacer(modifier = Modifier.height(4.dp)) // Small gap between text and progress bar
+            LinearProgressIndicator(
+                progress = { uploadProgress }, // Use lambda for progress
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp),
+                color = NeonGreen,
+                trackColor = NeonBlue.copy(alpha = 0.3f)
+            )
+        }
     }
 }
 
@@ -419,7 +502,7 @@ fun PollVibeInput(
     onDescriptionChanged: (String) -> Unit,
     pollOptions: List<String>,
     onOptionsChanged: (List<String>) -> Unit,
-    isPosting: Boolean
+    isPosting: Boolean,
 ) {
     Column {
         TextField(
@@ -447,7 +530,7 @@ fun PollVibeInput(
                 TextField(
                     value = option,
                     onValueChange = { newValue ->
-                        val newOptions = pollOptions.toMutableList().apply { this[index] = newValue }
+                        val newOptions = pollOptions.toMutableList<String>().apply { this[index] = newValue }
                         onOptionsChanged(newOptions)
                     },
                     enabled = !isPosting,
@@ -488,7 +571,7 @@ fun NeonProgressBar(progress: Float) {
     )
 
     LinearProgressIndicator(
-        progress = { progress / 100f },
+        progress = { progress },
         modifier = Modifier
             .fillMaxWidth()
             .height(8.dp)

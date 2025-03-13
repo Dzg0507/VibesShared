@@ -37,6 +37,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.media3.common.util.Log
+import androidx.media3.common.util.UnstableApi
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -56,8 +59,15 @@ import com.example.vibesshared.ui.ui.utils.formatTimestamp
 import com.example.vibesshared.ui.ui.viewmodel.MyProfileViewModel
 import com.example.vibesshared.ui.ui.viewmodel.PostViewModel
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.tasks.await
+import kotlin.coroutines.cancellation.CancellationException
+
+// Data class references (if needed for clarity, but assumed from previous context)
+// data class Post(...) // Defined in your data package
+// data class PostWithUser(...) // Defined in your data package
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -65,7 +75,7 @@ fun HomeScreen(
     navController: NavHostController,
     greetingPreference: GreetingPreference,
     postViewModel: PostViewModel = hiltViewModel(),
-    profileViewModel: MyProfileViewModel = hiltViewModel()
+    profileViewModel: MyProfileViewModel = hiltViewModel(),
 ) {
     val postsWithUsers by postViewModel.postsFlow.collectAsState()
     val isLoading by postViewModel.isLoading.collectAsState()
@@ -140,29 +150,43 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            items(postsWithUsers) { postWithUser ->
-                NeonPostCard(
-                    postWithUser = postWithUser,
-                    onLikeClick = { postId -> postViewModel.likePost(postId) },
-                    onCommentClick = { navController.navigate(Screen.Comments.createRoute(postWithUser.post.postId)) },
-                    navController = navController,
-                    onImageClick = { imageUrl -> fullScreenImageUrl = imageUrl },
-                    onVotePoll = { postId, option -> postViewModel.voteOnPoll(postId, option) }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            if (postsWithUsers.isEmpty() && !isLoading) {
-                item {
-                    Text(
-                        text = "BE THE FIRST TO SPARK THE FEED!",
+            if (isLoading) {
+                items(10) { // Placeholder for loading state
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
-                            .wrapContentWidth(Alignment.CenterHorizontally),
-                        color = NeonPink,
-                        style = MaterialTheme.typography.headlineSmall
+                            .padding(horizontal = 8.dp, vertical = 8.dp)
+                            .height(200.dp)
+                            .background(DarkBackground.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                            .shadow(8.dp, RoundedCornerShape(24.dp))
                     )
+                }
+            } else {
+                items(postsWithUsers) { postWithUser ->
+                    NeonPostCard(
+                        postWithUser = postWithUser,
+                        onLikeClick = { postId -> postViewModel.likePost(postId) },
+                        onCommentClick = { navController.navigate(Screen.Comments.createRoute(postWithUser.post.postId)) },
+                        navController = navController,
+                        onImageClick = { imageUrl -> fullScreenImageUrl = imageUrl },
+                        onVideoClick = { videoUrl -> navController.navigate(Screen.VideoPlayback.createRoute(videoUrl)) },
+                        onVotePoll = { postId, option -> postViewModel.voteOnPoll(postId, option) }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                if (postsWithUsers.isEmpty() && !isLoading) {
+                    item {
+                        Text(
+                            text = "BE THE FIRST TO SPARK THE FEED!",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                                .wrapContentWidth(Alignment.CenterHorizontally),
+                            color = NeonPink,
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                    }
                 }
             }
         }
@@ -299,7 +323,7 @@ fun AnimatedCreatePostCard(
     navController: NavHostController,
     userProfile: UserProfile? = null,
     greetings: List<String>,
-    greetingPreference: GreetingPreference
+    greetingPreference: GreetingPreference,
 ) {
     val infiniteTransition = rememberInfiniteTransition()
     val borderWidth by infiniteTransition.animateFloat(
@@ -445,22 +469,55 @@ fun AnimatedCreatePostCard(
     }
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NeonPostCard(
     postWithUser: PostWithUser,
     onLikeClick: (String) -> Unit,
     onCommentClick: (String) -> Unit,
-    navController: NavHostController,
+    navController: NavController,
     onImageClick: (String) -> Unit,
+    onVideoClick: (String) -> Unit,
     onVotePoll: (String, String) -> Unit
 ) {
     val post = postWithUser.post
     val user = postWithUser.user
-    var isLiked by remember { mutableStateOf(post.likes.contains(Firebase.auth.currentUser?.uid)) }
+    val postViewModel: PostViewModel = hiltViewModel() // Inject PostViewModel
+    val userId = remember { Firebase.auth.currentUser?.uid ?: "" }
+    var isLiked by remember { mutableStateOf(post.likes.contains(userId)) }
     var isExpanded by remember { mutableStateOf(false) }
-    var selectedPollOption by remember { mutableStateOf<String?>(null) }
-    var hasVoted by remember { mutableStateOf(post.hasUserVoted) }
+
+    // Use produceState with error handling for vote fetching, ensuring stability
+    val selectedPollOptionState = produceState(initialValue = null as String?, key1 = post.postId, key2 = userId) {
+        try {
+            val firestore = Firebase.firestore
+            val voteDoc = firestore.collection("posts").document(post.postId)
+                .collection("votes").document(userId).get().await()
+            value = voteDoc.getString("selectedOption")
+        } catch (e: Exception) {
+            Log.e("NeonPostCard", "Error fetching vote: ${e.message}")
+            if (e is com.google.firebase.firestore.FirebaseFirestoreException && e.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                value = null // Fallback to null if permissions are denied
+            } else if (e is CancellationException) {
+                Log.w("NeonPostCard", "Coroutine cancelled while fetching vote: ${e.message}")
+                value = null // Handle cancellation gracefully, no re-throw
+            } else {
+                // Log but don’t re-throw to prevent crashing
+                Log.e("NeonPostCard", "Unexpected error fetching vote: ${e.message}")
+                value = null
+            }
+        }
+    }
+
+    // Convert to MutableState for delegation and UI updates
+    var selectedPollOption by remember { mutableStateOf(selectedPollOptionState.value) }
+    LaunchedEffect(selectedPollOptionState.value) {
+        selectedPollOption = selectedPollOptionState.value
+    }
+
+    // Use hasUserVoted from the Post object (now persisted via fetchPosts and voteCache)
+    var hasVoted = post.hasUserVoted
 
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
@@ -482,46 +539,30 @@ fun NeonPostCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .wrapContentHeight() // Maintain content-wrapping behavior
-            .padding(horizontal = 8.dp) // Minimal external padding
+            .wrapContentHeight()
+            .padding(horizontal = 8.dp)
             .graphicsLayer {
                 translationY = parallaxOffset
-                rotationZ = parallaxOffset * 0.2f
+                rotationZ = parallaxOffset * 0.1f // Reduced rotation for smoother effect
             }
             .hoverable(interactionSource)
-            .shadow(
-                elevation = elevation,
-                shape = RoundedCornerShape(24.dp),
-                spotColor = NeonGreen
-            )
-            .clickable(
-                onClick = {
-                    if (post.pollData != null) {
-                        isExpanded = !isExpanded
-                    }
-                }
-            ),
+            .shadow(elevation = elevation, shape = RoundedCornerShape(24.dp), spotColor = NeonGreen)
+            .clickable { if (post.pollData != null) isExpanded = !isExpanded },
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = DarkBackground)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp) // Internal padding inside the neon border
-                .border(
-                    width = 2.dp,
-                    brush = Brush.linearGradient(listOf(NeonPink, NeonBlue)),
-                    shape = RoundedCornerShape(24.dp)
-                )
+                .padding(16.dp)
+                .border(width = 2.dp, brush = Brush.linearGradient(listOf(NeonPink, NeonBlue)), shape = RoundedCornerShape(24.dp))
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        navController.navigate(Screen.Profile.createRoute(user.userId))
-                    }
-                    .padding(vertical = 8.dp, horizontal = 4.dp) // Internal padding to space from the border
+                    .clickable { navController.navigate(Screen.Profile.createRoute(user.userId)) }
+                    .padding(vertical = 8.dp, horizontal = 4.dp)
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
@@ -533,15 +574,11 @@ fun NeonPostCard(
                         .size(48.dp)
                         .clip(CircleShape)
                         .border(2.dp, NeonGreen, CircleShape)
-                        .padding(4.dp), // Internal padding around profile pic
+                        .padding(4.dp),
                     contentScale = ContentScale.Crop
                 )
-
-                Spacer(modifier = Modifier.width(16.dp)) // Spacing between profile pic and text
-
-                Column(
-                    modifier = Modifier.padding(top = 4.dp) // Slight top padding for alignment
-                ) {
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.padding(top = 4.dp)) {
                     Text(
                         text = "${user.firstName} ${user.lastName}",
                         color = NeonYellow,
@@ -557,15 +594,12 @@ fun NeonPostCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp)) // Spacing between sections
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Handle poll description as postText with "Poll:" prefix, centered
             if (post.pollData != null) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally, // Ensure centering
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp) // Internal padding
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                 ) {
                     Text(
                         text = "Poll:",
@@ -577,43 +611,59 @@ fun NeonPostCard(
                         text = post.postText ?: "",
                         color = Color.White,
                         style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center, // Ensure centering
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp, horizontal = 4.dp) // Internal padding
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp)
                     )
                 }
             } else {
+                val combinedText = buildString {
+                    append(post.postText ?: "")
+                    if (post.postImages.isNotEmpty() && !post.imageDescription.isNullOrEmpty()) append("\n${post.imageDescription}")
+                    if (post.postVideo != null && !post.videoDescription.isNullOrEmpty()) append("\n${post.videoDescription}")
+                }
                 Text(
-                    text = post.postText ?: "",
+                    text = combinedText,
                     color = Color.White,
                     style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp) // Internal padding for non-poll posts
+                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
                 )
             }
 
             if (post.postImages.isNotEmpty()) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp), // Internal vertical padding
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    items(post.postImages.filterNotNull()) { imageUrl ->
+                if (post.postImages.size == 1) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(imageUrl)
-                                .crossfade(true)
-                                .build(),
+                            model = ImageRequest.Builder(LocalContext.current).data(post.postImages.first()).crossfade(true).build(),
                             contentDescription = "Post Image",
                             modifier = Modifier
                                 .size(240.dp, 180.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .border(2.dp, NeonGreen, RoundedCornerShape(16.dp))
-                                .clickable { onImageClick(imageUrl) },
+                                .clickable { onImageClick(post.postImages.first().toString()) },
                             contentScale = ContentScale.Crop
                         )
+                    }
+                } else {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        items(post.postImages.filterNotNull()) { imageUrl ->
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current).data(imageUrl).crossfade(true).build(),
+                                contentDescription = "Post Image",
+                                modifier = Modifier
+                                    .size(240.dp, 180.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(2.dp, NeonGreen, RoundedCornerShape(16.dp))
+                                    .clickable { onImageClick(imageUrl) },
+                                contentScale = ContentScale.Crop
+                            )
+                        }
                     }
                 }
             }
@@ -622,115 +672,102 @@ fun NeonPostCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .padding(vertical = 8.dp, horizontal = 16.dp) // Added horizontal padding for card alignment
                         .border(2.dp, NeonYellow, RoundedCornerShape(16.dp))
-                        .clickable { /* Navigate to video player */ }
-                        .padding(vertical = 8.dp, horizontal = 4.dp) // Internal padding
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable {
+                            val encodedUrl = java.net.URLEncoder.encode(post.postVideo, java.nio.charset.StandardCharsets.UTF_8.toString())
+                            onVideoClick(encodedUrl)
+                        }
                 ) {
                     AsyncImage(
-                        model = post.postVideo,
-                        contentDescription = "Video Preview",
-                        modifier = Modifier.fillMaxSize(),
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(post.thumbnailUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Video Thumbnail",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .padding(8.dp) // Added padding inside for video border visibility
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(2.dp, NeonGreen, RoundedCornerShape(16.dp)),
                         contentScale = ContentScale.Crop
                     )
                     Icon(
-                        imageVector = Icons.Filled.PlayArrow,
+                        imageVector = Icons.Default.PlayArrow,
                         contentDescription = "Play Video",
                         tint = NeonYellow,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(48.dp)
+                        modifier = Modifier.size(48.dp).align(Alignment.Center)
                     )
                 }
             }
 
             if (post.pollData != null) {
+                val options = post.getPollOptions() // Use the extension function from Post
+                val votes = post.getPollVotes() // Use the extension function from Post
+
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally, // Ensure centering
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp) // Internal padding
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                 ) {
                     if (!isExpanded) {
                         val flashAlpha by infiniteTransition.animateFloat(
                             initialValue = 0.5f,
                             targetValue = 1f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(1000, easing = LinearEasing),
-                                repeatMode = RepeatMode.Reverse
-                            )
+                            animationSpec = infiniteRepeatable(animation = tween(1000, easing = LinearEasing), repeatMode = RepeatMode.Reverse)
                         )
-                        // Enhanced flashing effect with all four colors
                         Text(
                             text = "Tap To Vote!",
-                            color = when ((flashAlpha * 4 % 4).toInt()) { // Corrected color cycling logic
+                            color = when ((flashAlpha * 4 % 4).toInt()) {
                                 0 -> NeonGreen
                                 1 -> NeonBlue
                                 2 -> NeonPink
                                 3 -> NeonYellow
-                                else -> NeonGreen // Default back to NeonGreen (should not reach here)
+                                else -> NeonGreen
                             },
-                            style = MaterialTheme.typography.headlineSmall.copy(fontSize = 24.sp), // Larger font size
-                            textAlign = TextAlign.Center, // Ensure centering
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp, horizontal = 4.dp) // Internal padding
+                            style = MaterialTheme.typography.headlineSmall.copy(fontSize = 24.sp),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp)
                         )
                     } else {
-                        val options = post.getPollOptions()
-                        val votes = post.getPollVotes()
-
-                        options.forEach { option ->
+                        options.forEach { option: String -> // Explicitly type as String
                             val voteCount = votes[option] ?: 0
                             val isSelected = selectedPollOption == option
-
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp)
-                                    .clickable(
-                                        enabled = !hasVoted,
-                                        onClick = {
-                                            if (!hasVoted) {
-                                                onVotePoll(post.postId, option)
-                                                selectedPollOption = option
-                                                hasVoted = true
-                                            }
+                                    .clickable(enabled = !hasVoted) {
+                                        if (!hasVoted) {
+                                            onVotePoll(post.postId, option)
+                                            // Update vote in Firestore via PostViewModel
+                                            postViewModel.savePollVote(post.postId, userId, option)
+                                            // Update local state
+                                            selectedPollOption = option
+                                            hasVoted = true
                                         }
-                                    )
-                                    .background(
-                                        if (isSelected) NeonGreen.copy(alpha = 0.3f)
-                                        else DarkBackground,
-                                        RoundedCornerShape(8.dp)
-                                    ),
+                                    }
+                                    .background(if (isSelected) NeonGreen.copy(alpha = 0.3f) else DarkBackground, RoundedCornerShape(8.dp)),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
                                     text = option,
                                     color = if (isSelected) NeonYellow else Color.White,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(horizontal = 8.dp), // Internal padding for poll options
+                                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                Text(
-                                    text = "$voteCount votes",
-                                    color = NeonGreen,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+                                Text(text = "$voteCount votes", color = NeonGreen, style = MaterialTheme.typography.bodyMedium)
                             }
                         }
-                        if (hasVoted) {
+                        if (hasVoted && selectedPollOption != null) {
                             Text(
                                 text = "You voted: $selectedPollOption",
                                 color = NeonBlue,
                                 style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp, horizontal = 8.dp), // Internal padding
-                                textAlign = TextAlign.Center // Ensure centering
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 8.dp),
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
@@ -738,21 +775,15 @@ fun NeonPostCard(
             }
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp), // Internal vertical padding
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 NeonIconButton(
                     icon = Icons.Filled.Favorite,
                     count = post.likes.size,
                     color = if (isLiked) NeonPink else Color.White,
-                    onClick = {
-                        onLikeClick(post.postId)
-                        isLiked = !isLiked
-                    }
+                    onClick = { onLikeClick(post.postId); isLiked = !isLiked }
                 )
-
                 NeonIconButton(
                     icon = Icons.Filled.ChatBubble,
                     count = post.commentCount,
@@ -767,7 +798,7 @@ fun NeonPostCard(
 @Composable
 fun FullScreenImage(
     imageUrl: String?,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     if (imageUrl != null) {
         var isAnimatingIn by remember { mutableStateOf(true) }
@@ -824,7 +855,7 @@ fun NeonIconButton(
     icon: ImageVector,
     count: Int,
     color: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()

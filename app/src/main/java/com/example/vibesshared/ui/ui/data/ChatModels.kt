@@ -9,7 +9,8 @@ data class Chat(
     val participants: List<String> = emptyList(),
     val lastMessage: String = "",
     @ServerTimestamp
-    val lastMessageTimestamp: Timestamp? = null // Add missing field and annotation
+    val lastMessageTimestamp: Timestamp? = null, // Add missing field and annotation
+    val lastMessageSender: String = "" // Add this field
 )
 
 data class Message(
@@ -18,6 +19,7 @@ data class Message(
     val senderId: String = "",
     val text: String = "",
     val imageUrl: String? = null,
+    val videoUrl: String? = null,
     @ServerTimestamp
     val timestamp: Timestamp? = null, // Add @ServerTimestamp annotation
     val type: String = "text"

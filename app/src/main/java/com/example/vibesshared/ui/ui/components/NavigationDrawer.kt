@@ -46,7 +46,8 @@ fun NavigationDrawer(
             Screen.Settings,
             Screen.AboutUs,
             Screen.ArrowScreen,
-            Screen.MyProfile
+            Screen.MyProfile,
+
         )
     }
 

@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -52,13 +53,12 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyProfileScreen(
     navController: NavController,
     viewModel: MyProfileViewModel = hiltViewModel(),
-    postViewModel: PostViewModel = hiltViewModel() // Access PostViewModel here to fetch posts
+    postViewModel: PostViewModel = hiltViewModel()
 ) {
     val userId = remember { Firebase.auth.currentUser?.uid }
     var userName by remember { mutableStateOf("") }
@@ -74,9 +74,8 @@ fun MyProfileScreen(
     val errorMessage by viewModel.errorMessage.collectAsState(initial = null)
     val userProfile by viewModel.userProfile.collectAsState(initial = null)
     val newlyAwardedBadge by viewModel.newlyAwardedBadge.collectAsState(initial = null)
-    val posts by postViewModel.postsFlow.collectAsState() // Use PostViewModel to get all posts
+    val posts by postViewModel.postsFlow.collectAsState()
 
-    // Find the most recent post for the user
     val recentPost = remember(posts, userId) {
         posts.filter { it.post.userId == userId }.maxByOrNull { it.post.timestamp ?: Timestamp.now() }
     }
@@ -140,7 +139,6 @@ fun MyProfileScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Username field with neon border when not in edit mode
                 AnimatedOutlinedTextField(
                     value = userName,
                     onValueChange = { if (isEditMode) userName = it },
@@ -149,12 +147,11 @@ fun MyProfileScreen(
                     animateIn = animateIn,
                     delayMillis = 1620,
                     fromTop = true,
-                    neonBorderWhenNotEditing = true // Add neon border when not editable
+                    neonBorderWhenNotEditing = true
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // First Name field with neon border when not in edit mode
                 AnimatedOutlinedTextField(
                     value = firstName,
                     onValueChange = { if (isEditMode) firstName = it },
@@ -163,12 +160,11 @@ fun MyProfileScreen(
                     animateIn = animateIn,
                     delayMillis = 740,
                     fromTop = false,
-                    neonBorderWhenNotEditing = true // Add neon border when not editable
+                    neonBorderWhenNotEditing = true
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Last Name field with neon border when not in edit mode
                 AnimatedOutlinedTextField(
                     value = lastName,
                     onValueChange = { if (isEditMode) lastName = it },
@@ -177,25 +173,23 @@ fun MyProfileScreen(
                     animateIn = animateIn,
                     delayMillis = 1300,
                     fromTop = true,
-                    neonBorderWhenNotEditing = true // Add neon border when not editable
+                    neonBorderWhenNotEditing = true
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Replace "Last Post: Coming Soon!" with a miniature NeonPostCard for the recent post
                 if (recentPost != null) {
-                    val post = recentPost // Store the non-null value in a local variable
+                    val post = recentPost
                     AnimatedNeonPostCardMini(
-                        postWithUser = post, // Use the local variable
+                        postWithUser = post,
                         onClick = {
                             navController.navigate("${Screen.Home.route}?postId=${post.post.postId}") {
-                                // Use modern navigation API to preserve back stack and bottom nav state
                                 val navOptions = navOptions {
                                     popUpTo(Screen.Home.route) {
-                                        saveState = true // Preserve state of HomeScreen
-                                        inclusive = false // Do not remove HomeScreen from back stack
+                                        saveState = true
+                                        inclusive = false
                                     }
-                                    launchSingleTop = true // Avoid adding duplicate destinations
+                                    launchSingleTop = true
                                 }
                                 navController.navigate("${Screen.Home.route}?postId=${post.post.postId}", navOptions)
                             }
@@ -215,10 +209,9 @@ fun MyProfileScreen(
                     )
                 }
 
-                // Enhanced "Total Vibes Shared" with larger text, neon number, and increased size
                 AnimatedText(
                     text = "Total Vibes Shared: ",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 22.sp), // Larger text
+                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 22.sp),
                     color = ElectricPurple,
                     animateIn = animateIn,
                     delayMillis = 850,
@@ -226,11 +219,11 @@ fun MyProfileScreen(
                 )
                 Text(
                     text = "${userProfile?.postCount ?: 0}",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp), // Larger number
-                    color = NeonYellow, // Different neon color for better visibility
+                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp),
+                    color = NeonYellow,
                     modifier = Modifier
-                        .padding(start = 4.dp) // Slight padding for spacing
-                        .graphicsLayer(alpha = if (animateIn) 1f else 0f) // Match animation
+                        .padding(start = 4.dp)
+                        .graphicsLayer(alpha = if (animateIn) 1f else 0f)
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -398,7 +391,7 @@ fun MyProfileScreen(
                                 Text("Sweet!", style = MaterialTheme.typography.labelLarge)
                             }
                         },
-                        containerColor = Color.Transparent // Use custom background instead
+                        containerColor = Color.Transparent
                     )
                 }
 
@@ -450,7 +443,6 @@ fun MyProfileScreen(
     }
 }
 
-// New composable for a miniature NeonPostCard with navigation to HomeScreen and scrolling
 @Composable
 private fun AnimatedNeonPostCardMini(
     postWithUser: PostWithUser,
@@ -473,25 +465,19 @@ private fun AnimatedNeonPostCardMini(
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.9f) // Slightly smaller width for miniature version
+                .fillMaxWidth(0.9f)
                 .wrapContentHeight()
                 .padding(vertical = 8.dp)
-                .graphicsLayer {
-                    translationY = with(density) { animatedOffsetY.toPx() }
-                }
+                .graphicsLayer { translationY = with(density) { animatedOffsetY.toPx() } }
                 .clickable(onClick = onClick)
-                .shadow(
-                    elevation = 8.dp,
-                    shape = RoundedCornerShape(12.dp),
-                    spotColor = NeonGreen
-                ),
+                .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp), spotColor = NeonGreen),
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = DarkBackground)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp) // Reduced padding for miniature size
+                    .padding(8.dp)
                     .border(
                         width = 1.dp,
                         brush = Brush.linearGradient(listOf(NeonPink, NeonBlue)),
@@ -511,14 +497,13 @@ private fun AnimatedNeonPostCardMini(
                             .build(),
                         contentDescription = "Profile Picture",
                         modifier = Modifier
-                            .size(32.dp) // Smaller size for miniature
+                            .size(32.dp)
                             .clip(CircleShape)
-                            .border(1.dp, NeonGreen, CircleShape),
+                            .border(1.dp, NeonGreen, CircleShape)
+                            .padding(end = 8.dp), // Added padding to separate from text
                         contentScale = ContentScale.Crop
                     )
-
                     Spacer(modifier = Modifier.width(8.dp))
-
                     Column {
                         Text(
                             text = "${postWithUser.user.firstName} ${postWithUser.user.lastName}",
@@ -537,8 +522,17 @@ private fun AnimatedNeonPostCardMini(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
+                val combinedText = buildString {
+                    append(postWithUser.post.postText ?: "")
+                    if (postWithUser.post.postImages.isNotEmpty() && !postWithUser.post.imageDescription.isNullOrEmpty()) {
+                        append("\n${postWithUser.post.imageDescription}")
+                    }
+                    if (postWithUser.post.postVideo != null && !postWithUser.post.videoDescription.isNullOrEmpty()) {
+                        append("\n${postWithUser.post.videoDescription}")
+                    }
+                }
                 Text(
-                    text = postWithUser.post.postText ?: "",
+                    text = combinedText,
                     color = Color.White,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 2,
@@ -546,7 +540,8 @@ private fun AnimatedNeonPostCardMini(
                     modifier = Modifier.padding(horizontal = 4.dp)
                 )
 
-                // Optionally add a small image or video preview if available
+                Spacer(modifier = Modifier.height(8.dp)) // Added spacer for separation before media
+
                 if (postWithUser.post.postImages.isNotEmpty()) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
@@ -555,31 +550,44 @@ private fun AnimatedNeonPostCardMini(
                             .build(),
                         contentDescription = "Post Image",
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(60.dp) // Smaller height for miniature
+                            .padding(4.dp) // Added padding around the image
+                            .size(40.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .border(1.dp, NeonGreen, RoundedCornerShape(8.dp)),
                         contentScale = ContentScale.Crop
                     )
                 }
 
-                // Optionally handle poll data or video previews similarly, scaled down
-                if (postWithUser.post.pollData != null) {
-                    Text(
-                        text = "Poll: ${postWithUser.post.getPollDescription()}",
-                        color = NeonBlue,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(vertical = 4.dp, horizontal = 4.dp)
-                    )
+                if (postWithUser.post.postVideo != null) {
+                    Box(
+                        modifier = Modifier
+                            .padding(4.dp) // Added padding around the video preview
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, NeonYellow, RoundedCornerShape(8.dp))
+                    ) {
+                        AsyncImage(
+                            model = postWithUser.post.thumbnailUrl ?: postWithUser.post.postVideo,
+                            contentDescription = "Video Preview",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                        Icon(
+                            imageVector = Icons.Filled.PlayArrow,
+                            contentDescription = "Play Video",
+                            tint = NeonYellow,
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .size(16.dp)
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-// Updated AnimatedOutlinedTextField to include neon border when not in edit mode
+// Remaining composables (AnimatedOutlinedTextField, AnimatedSaveButton, etc.) remain unchanged
 @Composable
 private fun AnimatedOutlinedTextField(
     value: String,
@@ -589,7 +597,7 @@ private fun AnimatedOutlinedTextField(
     animateIn: Boolean,
     delayMillis: Int,
     fromTop: Boolean,
-    neonBorderWhenNotEditing: Boolean // New parameter for neon border
+    neonBorderWhenNotEditing: Boolean
 ) {
     val density = LocalDensity.current
     val offsetX = if (fromTop) (-700).dp else 100.dp
@@ -606,7 +614,7 @@ private fun AnimatedOutlinedTextField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { Text(label, color = if (isEditMode) Color.Gray else NeonBlue) }, // Neon label color when not editing
+            label = { Text(label, color = if (isEditMode) Color.Gray else NeonBlue) },
             enabled = isEditMode,
             modifier = Modifier
                 .fillMaxWidth()
@@ -626,9 +634,9 @@ private fun AnimatedOutlinedTextField(
                 ),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = LimeGreen,
-                unfocusedTextColor = if (isEditMode) VividBlue else NeonYellow, // Neon text color when not editing
+                unfocusedTextColor = if (isEditMode) VividBlue else NeonYellow,
                 focusedBorderColor = SunsetOrange,
-                unfocusedBorderColor = if (isEditMode) NeonPink else Color.Transparent, // Hide default border when not editing
+                unfocusedBorderColor = if (isEditMode) NeonPink else Color.Transparent,
                 cursorColor = LimeGreen
             ),
             shape = RoundedCornerShape(8.dp)
@@ -636,7 +644,6 @@ private fun AnimatedOutlinedTextField(
     }
 }
 
-// Rest of the file (AnimatedSaveButton, AnimatedText, etc.) remains unchanged
 @Composable
 private fun AnimatedSaveButton(
     isEditMode: Boolean,

@@ -3,12 +3,9 @@ package com.example.vibesshared.ui.ui
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.compose.rememberNavController
 import com.example.vibesshared.ui.ui.components.BottomNavigationBar
@@ -40,14 +37,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             VibesSharedTheme {
                 val authViewModel: AuthViewModel = hiltViewModel()
-                val authState by authViewModel.authState.collectAsState()
                 val navController = rememberNavController()
                 val drawerState = rememberDrawerState(DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
 
-                val startDestination by remember(authState) {
+                // Dynamically set start destination based on auth state
+                val startDestination by remember(authViewModel.authState.collectAsState()) {
                     derivedStateOf {
-                        if (authState is AuthState.Authenticated) {
+                        if (authViewModel.authState.value is AuthState.Authenticated) {
                             Screen.Home.route
                         } else {
                             Screen.Login.route
@@ -55,37 +52,35 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                Log.d("MainActivity", "AuthState in MainActivity: $authState")
-
                 ModalNavigationDrawer(
                     drawerState = drawerState,
                     drawerContent = {
                         ModalDrawerSheet {
-                            NavigationDrawer(navController = navController, drawerState = drawerState, scope = scope)
+                            NavigationDrawer(
+                                navController = navController,
+                                drawerState = drawerState,
+                                scope = scope
+                            )
                         }
                     },
                     content = {
-                        if (authState is AuthState.Authenticated) {
-                            Scaffold(
-                                bottomBar = {
+                        Scaffold(
+                            bottomBar = {
+                                // Show BottomNavigationBar only if authenticated
+                                val authState by authViewModel.authState.collectAsState()
+                                if (authState is AuthState.Authenticated) {
                                     BottomNavigationBar(
                                         navController = navController,
                                         authState = authState,
-                                        userId = Firebase.auth.currentUser?.uid ?: "",
+                                        userId = Firebase.auth.currentUser?.uid ?: ""
                                     )
                                 }
-                            ) { innerPadding ->
-                                SetupNavGraph(
-                                    navController = navController,
-                                    startDestination = startDestination,
-                                    paddingValues = innerPadding
-                                )
                             }
-                        } else {
+                        ) { innerPadding ->
                             SetupNavGraph(
                                 navController = navController,
                                 startDestination = startDestination,
-                                paddingValues = PaddingValues(0.dp) // Provide default padding
+                                paddingValues = innerPadding
                             )
                         }
                     }

@@ -45,7 +45,7 @@ sealed class AuthState {
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
 
-        private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
+        private val _authState = MutableStateFlow<AuthState>(Loading)
         val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
         private val _isLoading = MutableStateFlow<Boolean>(false)
@@ -62,7 +62,7 @@ sealed class AuthState {
         // Derived StateFlow for currentUserId
         val currentUserId: StateFlow<String?> = authState.map { state ->
             when (state) {
-                is AuthState.Authenticated -> state.user?.uid
+                is Authenticated -> state.user?.uid
                 else -> null
             }
         }.stateIn(
@@ -80,10 +80,10 @@ sealed class AuthState {
                 val currentUser = repository.getCurrentUser()
                 _authState.value = if (currentUser != null) {
                     Log.d("AuthViewModel", "Initial AuthState: Authenticated")
-                    AuthState.Authenticated(currentUser)
+                    Authenticated(currentUser)
                 } else {
                     Log.d("AuthViewModel", "Initial AuthState: Unauthenticated")
-                    AuthState.Unauthenticated
+                    Unauthenticated
                 }
                 _isLoading.value = false
             }
@@ -96,7 +96,7 @@ sealed class AuthState {
                 is FirebaseNetworkException -> "A network error occurred. Please check your internet connection."
                 else -> "Authentication failed: ${e.message}" // More general message
             }
-            _authState.value = AuthState.Error(errorMessage)
+            _authState.value = Error(errorMessage)
             Log.e("AuthViewModel", "Authentication error", e) // General log message
         }
 
@@ -219,11 +219,11 @@ sealed class AuthState {
                 _isLoading.value = true
                 try {
                     repository.signOut()
-                    _authState.value = AuthState.Unauthenticated
+                    _authState.value = Unauthenticated
                     Log.d("AuthViewModel", "Logout successful")
                 } catch (e: Exception) {
                     _authState.value =
-                        AuthState.Error("Logout Failed: ${e.message}") // Include error message
+                        Error("Logout Failed: ${e.message}") // Include error message
                     Log.e("AuthViewModel", "Logout error", e)
                 } finally {
                     _isLoading.value = false

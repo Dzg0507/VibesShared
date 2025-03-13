@@ -1,10 +1,13 @@
 package com.example.vibesshared.ui.ui.screens
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material3.*
@@ -12,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -33,33 +37,18 @@ fun ChatsScreen(navController: NavController, modifier: Modifier = Modifier) {
     val chats by viewModel.chats.collectAsState()
     val currentUserId = Firebase.auth.currentUser?.uid ?: ""
 
-
-
-    LaunchedEffect(key1 = currentUserId) {
+    LaunchedEffect(currentUserId) {
         viewModel.getUserChats()
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        "Chats",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp,
-                        color = Color.White
-                    )
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
-                ),
+                title = { Text("Chats", fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color.White) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Filled.ArrowBackIosNew,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Filled.ArrowBackIosNew, "Back", tint = Color.White)
                     }
                 }
             )
@@ -73,12 +62,8 @@ fun ChatsScreen(navController: NavController, modifier: Modifier = Modifier) {
             contentPadding = PaddingValues(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            items(chats) { chatWithUserInfo -> // Use ChatWithUserInfo
-                ChatItemCard(
-                    chat = chatWithUserInfo, // Pass ChatWithUserInfo
-                    navController = navController,
-                    currentUserId = currentUserId
-                )
+            items(chats) { chatWithUserInfo ->
+                ChatItemCard(chatWithUserInfo, navController, currentUserId)
             }
         }
     }
@@ -86,42 +71,57 @@ fun ChatsScreen(navController: NavController, modifier: Modifier = Modifier) {
 
 @Composable
 fun ChatItemCard(
-    chat: ChatWithUserInfo, // Receive ChatWithUserInfo
+    chat: ChatWithUserInfo,
     navController: NavController,
     currentUserId: String
 ) {
+    val gradient = remember(chat.otherUser.userId) {
+        val seed = chat.otherUser.userId.hashCode()
+        listOf(
+            Color(seed and 0xFF0000 shr 16, seed and 0x00FF00 shr 8, seed and 0x0000FF),
+            Color((seed * 2) and 0xFF0000 shr 16, (seed * 2) and 0x00FF00 shr 8, (seed * 2) and 0x0000FF)
+        )
+    }
+    val moodEmoji = chat.lastMessage.let { msg ->
+        when {
+            msg.contains("happy", ignoreCase = true) -> "😊"
+            msg.contains("sad", ignoreCase = true) -> "😢"
+            msg.contains("image") -> "🖼️"
+            else -> "💬"
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
-            .clickable {
-                navController.navigate(Screen.Messaging.createRoute(chat.chatId))
-            },
-        verticalAlignment = Alignment.CenterVertically // Vertically align items in the Row
+            .background(Brush.linearGradient(gradient), RoundedCornerShape(12.dp))
+            .clickable { navController.navigate(Screen.Messaging.createRoute(chat.chatId)) }
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Display the other user's profile picture
         AsyncImage(
-            model = chat.otherUser.profilePictureUrl, // Use profilePictureUrl from UserProfile
+            model = chat.otherUser.profilePictureUrl,
             contentDescription = "Profile Picture",
             modifier = Modifier
-                .size(48.dp) // Adjust size as needed
-                .clip(CircleShape), // Circular image
-            contentScale = ContentScale.Crop // Crop the image to fit the circle
+                .size(48.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
         )
-
-        Spacer(modifier = Modifier.width(16.dp)) // Add space between image and text
-
+        Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = chat.otherUser.userName ?: "Unknown User", // Use userName from UserProfile
+                text = chat.otherUser.userName ?: "Unknown User",
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                fontSize = 18.sp,
+                color = Color.White
             )
-            Spacer(modifier = Modifier.padding(2.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = chat.lastMessage, // Display the last message
+                text = "$moodEmoji ${chat.lastMessage}",
                 fontSize = 14.sp,
-                color = Color.Gray
+                color = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier.animateContentSize() // Simple animation
             )
         }
     }

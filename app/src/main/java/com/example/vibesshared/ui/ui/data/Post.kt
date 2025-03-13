@@ -9,7 +9,7 @@ data class Post(
     @DocumentId val postId: String = "",
     val userId: String = "",
     val postText: String? = null,
-    @PropertyName("postImages")
+    @PropertyName("postImages") // Maps Firestore 'postImages' to internalPostImages
     private val internalPostImages: List<String?> = emptyList(),
     @ServerTimestamp
     val timestamp: Timestamp? = null,
@@ -22,18 +22,20 @@ data class Post(
     val commentCount: Int = 0,
     val pollData: Map<String, Any?>? = null,
     val hasUserVoted: Boolean = false,
-    @PropertyName("postImage")
-    private val legacyPostImage: String? = null
+    val imageDescription: String? = null,
+    val videoDescription: String? = null,
+    val thumbnailUrl: String? = null
 ) {
-    // Getter for postImages that prioritizes internalPostImages but falls back to legacyPostImage
     val postImages: List<String?>
-        get() = if (internalPostImages.isNotEmpty()) internalPostImages else listOfNotNull(legacyPostImage)
+        get() = internalPostImages
 
     fun getPollOptions(): List<String> {
+        @Suppress("UNCHECKED_CAST")
         return (pollData?.get("options") as? List<String>) ?: emptyList()
     }
 
     fun getPollVotes(): Map<String, Int> {
+        @Suppress("UNCHECKED_CAST")
         val rawVotes = pollData?.get("votes") as? Map<String, *>
         return rawVotes?.mapValues { entry ->
             when (val value = entry.value) {

@@ -73,7 +73,8 @@ dependencies {
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.foundation.layout)
     implementation(libs.androidx.material.icons.extended)
-    implementation("androidx.compose.material:material-icons-extended:1.7.7")
+    implementation(libs.material.icons.extended)
+    implementation (libs.io.coil.kt.coil.gif) // Explicit GIF support
 
 
     //Core
@@ -83,7 +84,12 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
 
-
+    //3D Rendering
+    // build.gradle.kts
+    implementation("io.github.sceneview:sceneview:0.10.0")
+    implementation("com.google.android.filament:filament-android:1.32.5")
+    implementation("com.google.android.filament:filament-utils-android:1.32.5")
+    implementation("com.google.android.filament:gltfio-android:1.32.5")
 
 
 
@@ -116,6 +122,7 @@ dependencies {
     implementation(libs.glide)
     kapt(libs.glide.compiler) // Correct kapt usage
     implementation(libs.coil.compose)
+    implementation (libs.androidx.media3.transformer) // For frame extraction if needed
 
 
 
@@ -153,6 +160,4 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core.v361)
     testImplementation(libs.mockk)
     implementation(libs.androidx.graphics.core)
-    implementation ("com.airbnb.android:lottie-compose:6.6.2")
-
 }

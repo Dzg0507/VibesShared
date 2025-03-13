@@ -11,4 +11,3 @@ class VibesSharedApp : Application() {
         FirebaseApp.initializeApp(this)
     }
 }
-

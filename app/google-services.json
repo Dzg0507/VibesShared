@@ -23,6 +23,9 @@
         "appinvite_service": {
           "other_platform_oauth_client": []
         }
+      },
+      "app_check_settings": {
+        "debug_token": "0A2D085B-3597-40DE-BD5E-639AE1CE811E"
       }
     }
   ],
