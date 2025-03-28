@@ -1,13 +1,16 @@
 [versions]
 # Kotlin and Compose
 coilCompose = "2.4.0"
-coilKtCoilGif = "2.4.0"
+coilKtCoilGif = "2.7.0"
+filamentAndroid = "1.57.1"
+filamentUtilsAndroid = "1.57.1"
 firebaseAppcheckDebug = "18.0.0"
 firebaseAppcheckPlayintegrity = "18.0.0"
+gltfioAndroid = "1.57.1"
 graphicsCore = "1.0.2"
-kotlin = "2.1.10"
+kotlin = "2.1.0"
 #composeCompiler = "1.5.10"
-compose = "2025.02.00"
+compose = "2025.03.00"
 compose-plugin = "2025.01.01"
 compose-material3 = "1.3.1"
 
@@ -17,8 +20,9 @@ androidxAppCompat = "1.7.0"
 androidxConstraintLayout = "2.2.1"
 androidxLifecycle = "2.8.7"
 androidxActivityCompose = "1.10.1"
-androidxNavigationCompose = "2.8.8"
+androidxNavigationCompose = "2.8.9"
 androidxHiltNavigationCompose = "1.2.0"
+kotlinxMetadataJvm = "0.9.0"
 material = "1.12.0"  # Correct: Define the version here
 androidxTestExt = "1.2.1"
 androidxTestEspresso = "3.6.1"
@@ -40,17 +44,24 @@ coil = "2.7.0"
 coil-gif = "2.7.0"
 
 # Other Libraries
-lottie = "6.6.2"
-hilt = "2.55"
+room = "2.6.1"
+lottie = "6.6.4"
+hilt = "2.56"
 kotlinxSerializationJson = "1.8.0"
 playServicesLocation = "21.3.0"
 playServicesMaps = "19.1.0"
 media3 = "1.5.1"
 junit = "4.13.2"
-mockk = "1.13.16"
+mockk = "1.13.17"
 animationCoreAndroid = "1.7.8"
+sceneview = "2.2.1"
 
 [libraries]
+#Room Local Cache
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "compose-material3" } # <---- CHECK THIS LINE
 
 # Kotlin and Compose
@@ -65,8 +76,11 @@ androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 coil-kt-coil-compose = { module = ")io.coil-kt:coil-compose", version.ref = "coilCompose" }
 com-google-firebase-firebase-auth = { module = "com.google.firebase:firebase-auth" , version.ref = "firebase-auth" }
+filament-android = { module = "com.google.android.filament:filament-android", version.ref = "filamentAndroid" }
+filament-utils-android = { module = "com.google.android.filament:filament-utils-android", version.ref = "filamentUtilsAndroid" }
 firebase-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debug", version.ref = "firebaseAppcheckDebug" }
 firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity", version.ref = "firebaseAppcheckPlayintegrity" }
+gltfio-android = { module = "com.google.android.filament:gltfio-android", version.ref = "gltfioAndroid" }
 io-coil-kt-coil-gif = { module = "io.coil-kt:coil-gif", version.ref = "coilKtCoilGif" }
 jetbrains-kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version = "2.1.10" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose" }
@@ -87,14 +101,15 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "androidxNavigationCompose" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidxDatastore" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "androidxDatastore" }
+kotlinx-metadata-jvm = { module = "org.jetbrains.kotlinx:kotlinx-metadata-jvm", version.ref = "kotlinxMetadataJvm" }
 material = { module = "com.google.android.material:material", version.ref = "material" } # Correct: Define the alias
 
 # Firebase
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", version = "23.2.0" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore-ktx", version = "25.1.2" }
-firebase-analytics = { module = "com.google.firebase:firebase-analytics-ktx", version = "22.2.0" }
-firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics-ktx", version = "19.4.0" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics-ktx", version = "22.3.0" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics-ktx", version = "19.4.1" }
 firebase-perf = { module = "com.google.firebase:firebase-perf", version = "21.0.4" }
 firebase-storage = { module = "com.google.firebase:firebase-storage-ktx", version = "21.0.1" }
 
@@ -131,9 +146,10 @@ mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 google-firebase-analytics = {module = "com.google.firebase:firebase-analytics"}
 google-firebase-auth = {module = "com.google.firebase:firebase-auth"}
 androidx-animation-core-android = { group = "androidx.compose.animation", name = "animation-core-android", version.ref = "animationCoreAndroid" }
+sceneview = { module = "io.github.sceneview:sceneview", version.ref = "sceneview" }
 
 [plugins]
-android-application = { id = "com.android.application", version = "8.2.2" }
+android-application = { id = "com.android.application", version = "8.9.0" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-kapt = { id = "kotlin-kapt" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }

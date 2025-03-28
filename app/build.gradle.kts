@@ -1,28 +1,36 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.kapt) // Correct: Use alias
+    id("com.google.devtools.ksp") // <- add this
     alias(libs.plugins.hilt)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.crashlytics)
     alias(libs.plugins.compose.compiler)
-
-
 }
 
 android {
-    namespace = "com.example.vibesshared" // Replace
+    namespace = "com.example.vibesshared"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.vibesshared" // Replace
+        applicationId = "com.example.vibesshared"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += mapOf(
+                    "room.schemaLocation" to "$projectDir/schemas",
+                    "room.incremental" to "false", // Temporarily disable incremental processing
+                    "room.expandProjection" to "true"
+                )
+            }
+        }
     }
 
     buildTypes {
@@ -50,20 +58,19 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.3"
+        kotlinCompilerExtensionVersion = "1.5.8"
     }
     buildToolsVersion = "36.0.0 rc4"
     ndkVersion = "28.0.13004108"
 }
 
-//  ****  Put kapt configuration *before* dependencies ****
-kapt {
-    correctErrorTypes = true
-}
+
 
 dependencies {
+    // Add the kotlinx-metadata-jvm dependency at the top level to ensure it's loaded first
+
     //Compose
-    implementation(libs.androidx.compose.bom) // Use the latest stable version
+    implementation(platform(libs.androidx.compose.bom))
 
     // Compose UI
     implementation(libs.androidx.ui)
@@ -74,43 +81,38 @@ dependencies {
     implementation(libs.androidx.foundation.layout)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.material.icons.extended)
-    implementation (libs.io.coil.kt.coil.gif) // Explicit GIF support
+    implementation(libs.io.coil.kt.coil.gif)
 
 
     //Core
     implementation(libs.jetbrains.kotlin.stdlib)
+    implementation(libs.androidx.graphics.core)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
 
     //3D Rendering
-    // build.gradle.kts
-    implementation("io.github.sceneview:sceneview:0.10.0")
-    implementation("com.google.android.filament:filament-android:1.32.5")
-    implementation("com.google.android.filament:filament-utils-android:1.32.5")
-    implementation("com.google.android.filament:gltfio-android:1.32.5")
-
-
+    implementation("io.github.sceneview:sceneview:2.2.1")
+    implementation("com.google.android.filament:filament-android:1.57.1")
+    implementation("com.google.android.filament:filament-utils-android:1.57.1")
+    implementation("com.google.android.filament:gltfio-android:1.57.1")
 
     //Lifecycle
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
 
-
     //Navigation
     implementation(libs.androidx.navigation.compose)
-
 
     //Lottie
     implementation(libs.lottie)
 
-
     //Hilt
     implementation(libs.hilt.android)
     implementation(libs.androidx.animation.core.android)
-    kapt(libs.hilt.compiler) // Correct kapt usage
+    ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
     //Networking
@@ -120,11 +122,14 @@ dependencies {
 
     //Image Loading
     implementation(libs.glide)
-    kapt(libs.glide.compiler) // Correct kapt usage
+    ksp(libs.glide.compiler)
     implementation(libs.coil.compose)
-    implementation (libs.androidx.media3.transformer) // For frame extraction if needed
+    implementation(libs.androidx.media3.transformer)
 
-
+    //Room LocalCache - explicitly use version numbers for more control
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     //Firebase
     implementation(platform(libs.firebase.bom))
@@ -136,10 +141,8 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.com.google.firebase.firebase.auth)
 
-
     //Serialization
     implementation(libs.kotlinx.serialization.json)
-
 
     //Google Play Services
     implementation(libs.play.services.location)
@@ -159,5 +162,4 @@ dependencies {
     androidTestImplementation(libs.androidx.junit.v121)
     androidTestImplementation(libs.androidx.espresso.core.v361)
     testImplementation(libs.mockk)
-    implementation(libs.androidx.graphics.core)
 }
