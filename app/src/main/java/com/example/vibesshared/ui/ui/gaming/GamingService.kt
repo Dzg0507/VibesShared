@@ -333,11 +333,16 @@ class GamingService(private val context: Context) {
                 achievementsUnlocked = (5..25).random(),
                 rank = (1..100).random(),
                 coinsEarned = (100..5000).random(),
-                tournamentsWon = (0..5).random()
+                tournamentsWon = (0..5).random(),
+                currentLevel = (1..10).random(),
+                experiencePoints = (0..2500).random(),
+                experienceToNextLevel = 300,
+                streakDays = (0..30).random(),
+                lastPlayDate = System.currentTimeMillis() - (0..86400000L).random()
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error getting user stats", e)
-            UserGamingStats(userId, 0, 0, 0, 0, "", 0, 0, 0, 0, 0)
+            UserGamingStats(userId, 0, 0, 0, 0, "", 0, 0, 0, 0, 0, 1, 0, 100, 0, System.currentTimeMillis())
         }
     }
     
@@ -411,6 +416,274 @@ class GamingService(private val context: Context) {
         }
     }
     
+    /**
+     * Get user level information
+     */
+    suspend fun getUserLevel(userId: String): UserLevel {
+        return try {
+            delay(200) // Simulate level calculation
+            
+            val stats = getUserStats(userId)
+            val currentLevel = stats.currentLevel
+            
+            val levelData = getLevelData(currentLevel)
+            levelData
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting user level", e)
+            getLevelData(1) // Default to level 1
+        }
+    }
+    
+    /**
+     * Award experience points
+     */
+    suspend fun awardExperience(userId: String, points: Int, reason: String): ExperienceAward {
+        return try {
+            delay(100) // Simulate experience award
+            
+            val experienceAward = ExperienceAward(
+                userId = userId,
+                pointsAwarded = points,
+                reason = reason,
+                timestamp = System.currentTimeMillis(),
+                newLevel = null, // Will be calculated
+                levelUpRewards = emptyList()
+            )
+            
+            Log.d(TAG, "Awarded $points XP to user $userId for: $reason")
+            experienceAward
+        } catch (e: Exception) {
+            Log.e(TAG, "Error awarding experience", e)
+            throw e
+        }
+    }
+    
+    /**
+     * Get level progression data
+     */
+    private fun getLevelData(level: Int): UserLevel {
+        val levelData = mapOf(
+            1 to UserLevel(1, "Rookie", 0, 100, listOf(
+                LevelReward(RewardType.COINS, 50, "Welcome bonus"),
+                LevelReward(RewardType.TITLE, 1, "Rookie title")
+            ), "#4CAF50", "🌱"),
+            2 to UserLevel(2, "Player", 100, 300, listOf(
+                LevelReward(RewardType.COINS, 100, "Level up bonus"),
+                LevelReward(RewardType.AVATAR_FRAME, 1, "Bronze frame")
+            ), "#2196F3", "🎮"),
+            3 to UserLevel(3, "Competitor", 300, 600, listOf(
+                LevelReward(RewardType.COINS, 200, "Level up bonus"),
+                LevelReward(RewardType.TITLE, 2, "Competitor title")
+            ), "#FF9800", "⚔️"),
+            4 to UserLevel(4, "Champion", 600, 1000, listOf(
+                LevelReward(RewardType.COINS, 300, "Level up bonus"),
+                LevelReward(RewardType.AVATAR_FRAME, 2, "Silver frame"),
+                LevelReward(RewardType.GAME_UNLOCK, 1, "New game unlocked")
+            ), "#9C27B0", "👑"),
+            5 to UserLevel(5, "Master", 1000, 1500, listOf(
+                LevelReward(RewardType.COINS, 500, "Level up bonus"),
+                LevelReward(RewardType.TITLE, 3, "Master title"),
+                LevelReward(RewardType.SPECIAL_ACHIEVEMENT, 1, "Master achievement")
+            ), "#F44336", "🏆"),
+            6 to UserLevel(6, "Legend", 1500, 2500, listOf(
+                LevelReward(RewardType.COINS, 750, "Level up bonus"),
+                LevelReward(RewardType.AVATAR_FRAME, 3, "Gold frame"),
+                LevelReward(RewardType.TITLE, 4, "Legend title")
+            ), "#FFD700", "⭐"),
+            7 to UserLevel(7, "Mythic", 2500, 4000, listOf(
+                LevelReward(RewardType.COINS, 1000, "Level up bonus"),
+                LevelReward(RewardType.SPECIAL_ACHIEVEMENT, 2, "Mythic achievement"),
+                LevelReward(RewardType.GAME_UNLOCK, 2, "Premium game unlocked")
+            ), "#E91E63", "🔥"),
+            8 to UserLevel(8, "Transcendent", 4000, 6000, listOf(
+                LevelReward(RewardType.COINS, 1500, "Level up bonus"),
+                LevelReward(RewardType.AVATAR_FRAME, 4, "Diamond frame"),
+                LevelReward(RewardType.TITLE, 5, "Transcendent title")
+            ), "#00BCD4", "🌟"),
+            9 to UserLevel(9, "Immortal", 6000, 10000, listOf(
+                LevelReward(RewardType.COINS, 2000, "Level up bonus"),
+                LevelReward(RewardType.SPECIAL_ACHIEVEMENT, 3, "Immortal achievement"),
+                LevelReward(RewardType.GAME_UNLOCK, 3, "Exclusive game unlocked")
+            ), "#795548", "💀"),
+            10 to UserLevel(10, "Godlike", 10000, Int.MAX_VALUE, listOf(
+                LevelReward(RewardType.COINS, 5000, "Final bonus"),
+                LevelReward(RewardType.AVATAR_FRAME, 5, "Godlike frame"),
+                LevelReward(RewardType.TITLE, 6, "Godlike title"),
+                LevelReward(RewardType.SPECIAL_ACHIEVEMENT, 4, "Godlike achievement")
+            ), "#FF5722", "⚡")
+        )
+        
+        return levelData[level] ?: levelData[1]!!
+    }
+    
+    /**
+     * Get enhanced achievements with more categories
+     */
+    suspend fun getEnhancedAchievements(userId: String): List<EnhancedAchievement> {
+        return try {
+            delay(300)
+            
+            val achievements = listOf(
+                EnhancedAchievement(
+                    id = "first_game",
+                    title = "First Steps",
+                    description = "Play your first game",
+                    icon = "🎮",
+                    category = AchievementCategory.GAMING,
+                    isUnlocked = true,
+                    unlockedAt = System.currentTimeMillis() - 86400000L,
+                    rarity = AchievementRarity.COMMON,
+                    points = 10,
+                    animationType = AnimationType.COIN_COLLECT
+                ),
+                EnhancedAchievement(
+                    id = "score_master",
+                    title = "Score Master",
+                    description = "Reach 10,000 points in any game",
+                    icon = "🏆",
+                    category = AchievementCategory.SCORING,
+                    isUnlocked = true,
+                    unlockedAt = System.currentTimeMillis() - 43200000L,
+                    rarity = AchievementRarity.RARE,
+                    points = 50,
+                    animationType = AnimationType.TROPHY_CELEBRATION
+                ),
+                EnhancedAchievement(
+                    id = "social_player",
+                    title = "Social Player",
+                    description = "Play with 10 different friends",
+                    icon = "👥",
+                    category = AchievementCategory.SOCIAL,
+                    isUnlocked = false,
+                    unlockedAt = null,
+                    rarity = AchievementRarity.EPIC,
+                    points = 100,
+                    animationType = AnimationType.STAR_BURST
+                ),
+                EnhancedAchievement(
+                    id = "speed_demon",
+                    title = "Speed Demon",
+                    description = "Complete a game in under 30 seconds",
+                    icon = "⚡",
+                    category = AchievementCategory.SPEED,
+                    isUnlocked = false,
+                    unlockedAt = null,
+                    rarity = AchievementRarity.LEGENDARY,
+                    points = 200,
+                    animationType = AnimationType.STAR_BURST
+                ),
+                EnhancedAchievement(
+                    id = "daily_player",
+                    title = "Daily Player",
+                    description = "Play games for 7 consecutive days",
+                    icon = "📅",
+                    category = AchievementCategory.CONSISTENCY,
+                    isUnlocked = true,
+                    unlockedAt = System.currentTimeMillis() - 604800000L,
+                    rarity = AchievementRarity.RARE,
+                    points = 75,
+                    animationType = AnimationType.COIN_COLLECT
+                ),
+                EnhancedAchievement(
+                    id = "perfectionist",
+                    title = "Perfectionist",
+                    description = "Achieve perfect score in any game",
+                    icon = "💎",
+                    category = AchievementCategory.SCORING,
+                    isUnlocked = false,
+                    unlockedAt = null,
+                    rarity = AchievementRarity.LEGENDARY,
+                    points = 300,
+                    animationType = AnimationType.TROPHY_CELEBRATION
+                ),
+                EnhancedAchievement(
+                    id = "night_owl",
+                    title = "Night Owl",
+                    description = "Play games after midnight",
+                    icon = "🦉",
+                    category = AchievementCategory.SPECIAL,
+                    isUnlocked = false,
+                    unlockedAt = null,
+                    rarity = AchievementRarity.EPIC,
+                    points = 150,
+                    animationType = AnimationType.STAR_BURST
+                ),
+                EnhancedAchievement(
+                    id = "early_bird",
+                    title = "Early Bird",
+                    description = "Play games before 6 AM",
+                    icon = "🐦",
+                    category = AchievementCategory.SPECIAL,
+                    isUnlocked = false,
+                    unlockedAt = null,
+                    rarity = AchievementRarity.RARE,
+                    points = 125,
+                    animationType = AnimationType.COIN_COLLECT
+                )
+            )
+            
+            achievements
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting enhanced achievements", e)
+            emptyList()
+        }
+    }
+    
+    /**
+     * Get social gaming features
+     */
+    suspend fun getSocialFeatures(userId: String): SocialGamingData {
+        return try {
+            delay(300)
+            
+            SocialGamingData(
+                userId = userId,
+                friendsPlaying = (1..8).map { index ->
+                    FriendActivity(
+                        friendId = "friend_$index",
+                        friendName = "Friend$index",
+                        currentGame = availableGames.random().name,
+                        isOnline = (0..1).random() == 1,
+                        lastSeen = System.currentTimeMillis() - (index * 300000L),
+                        avatar = "https://picsum.photos/100/100?id=$index"
+                    )
+                },
+                recentChallenges = listOf(
+                    FriendChallenge(
+                        id = "challenge_1",
+                        challengerName = "Friend1",
+                        gameName = "Emoji Match",
+                        challengeScore = 8500,
+                        timeLimit = 24 * 60 * 60 * 1000L, // 24 hours
+                        isCompleted = false
+                    ),
+                    FriendChallenge(
+                        id = "challenge_2",
+                        challengerName = "Friend3",
+                        gameName = "Word Race",
+                        challengeScore = 12000,
+                        timeLimit = 12 * 60 * 60 * 1000L, // 12 hours
+                        isCompleted = false
+                    )
+                ),
+                teamChallenges = listOf(
+                    TeamChallenge(
+                        id = "team_1",
+                        teamName = "Lightning Bolts",
+                        currentObjective = "Score 100,000 points total",
+                        progress = 75000,
+                        target = 100000,
+                        members = 4,
+                        endTime = System.currentTimeMillis() + 86400000L
+                    )
+                )
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting social features", e)
+            SocialGamingData(userId, emptyList(), emptyList(), emptyList())
+        }
+    }
+
     private fun generateAchievements(score: Int): List<String> {
         val achievements = mutableListOf<String>()
         
@@ -530,8 +803,33 @@ data class UserGamingStats(
     val achievementsUnlocked: Int,
     val rank: Int,
     val coinsEarned: Int,
-    val tournamentsWon: Int
+    val tournamentsWon: Int,
+    val currentLevel: Int,
+    val experiencePoints: Int,
+    val experienceToNextLevel: Int,
+    val streakDays: Int,
+    val lastPlayDate: Long
 )
+
+data class UserLevel(
+    val level: Int,
+    val title: String,
+    val minExperience: Int,
+    val maxExperience: Int,
+    val rewards: List<LevelReward>,
+    val color: String,
+    val badgeIcon: String
+)
+
+data class LevelReward(
+    val type: RewardType,
+    val value: Int,
+    val description: String
+)
+
+enum class RewardType {
+    COINS, AVATAR_FRAME, TITLE, GAME_UNLOCK, SPECIAL_ACHIEVEMENT
+}
 
 data class DailyChallenge(
     val id: String,
@@ -569,7 +867,7 @@ enum class LeaderboardTimeFrame {
 }
 
 enum class AchievementCategory {
-    GAMING, SCORING, SOCIAL, SPEED, CONSISTENCY, TOURNAMENT
+    GAMING, SCORING, SOCIAL, SPEED, CONSISTENCY, TOURNAMENT, SPECIAL
 }
 
 enum class AchievementRarity {
@@ -578,4 +876,66 @@ enum class AchievementRarity {
 
 enum class TournamentStatus {
     REGISTRATION_OPEN, ACTIVE, COMPLETED, CANCELLED
+}
+
+// Enhanced gamification data classes
+data class EnhancedAchievement(
+    val id: String,
+    val title: String,
+    val description: String,
+    val icon: String,
+    val category: AchievementCategory,
+    val isUnlocked: Boolean,
+    val unlockedAt: Long?,
+    val rarity: AchievementRarity,
+    val points: Int,
+    val animationType: AnimationType
+)
+
+data class ExperienceAward(
+    val userId: String,
+    val pointsAwarded: Int,
+    val reason: String,
+    val timestamp: Long,
+    val newLevel: Int?,
+    val levelUpRewards: List<LevelReward>
+)
+
+data class SocialGamingData(
+    val userId: String,
+    val friendsPlaying: List<FriendActivity>,
+    val recentChallenges: List<FriendChallenge>,
+    val teamChallenges: List<TeamChallenge>
+)
+
+data class FriendActivity(
+    val friendId: String,
+    val friendName: String,
+    val currentGame: String,
+    val isOnline: Boolean,
+    val lastSeen: Long,
+    val avatar: String
+)
+
+data class FriendChallenge(
+    val id: String,
+    val challengerName: String,
+    val gameName: String,
+    val challengeScore: Int,
+    val timeLimit: Long,
+    val isCompleted: Boolean
+)
+
+data class TeamChallenge(
+    val id: String,
+    val teamName: String,
+    val currentObjective: String,
+    val progress: Int,
+    val target: Int,
+    val members: Int,
+    val endTime: Long
+)
+
+enum class AnimationType {
+    TROPHY_CELEBRATION, STAR_BURST, COIN_COLLECT, NONE
 }

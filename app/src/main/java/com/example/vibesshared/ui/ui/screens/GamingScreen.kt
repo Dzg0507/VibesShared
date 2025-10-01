@@ -33,6 +33,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.vibesshared.ui.ui.gaming.*
 import com.example.vibesshared.ui.ui.theme.*
+import com.example.vibesshared.ui.ui.screens.EnhancedGamingScreen
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -41,6 +42,18 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GamingScreen(
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
+    // Use the enhanced gaming screen
+    EnhancedGamingScreen(
+        navController = navController,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun OriginalGamingScreen(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
