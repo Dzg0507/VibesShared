@@ -1,12 +1,9 @@
 
-/*
 package com.example.vibesshared.ui.ui.data
 
 import android.net.Uri
 import android.util.Log
 import com.example.vibesshared.ui.ui.components.UserProfile
-import com.example.vibesshared.ui.ui.data.Chat
-import com.example.vibesshared.ui.ui.data.Message
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ktx.firestore
@@ -424,5 +421,3 @@ sealed class Result<out T> {
     data class Success<out T>(val data: T) : Result<T>()
     data class Error(val exception: Exception) : Result<Nothing>()
 }
-
-*/
