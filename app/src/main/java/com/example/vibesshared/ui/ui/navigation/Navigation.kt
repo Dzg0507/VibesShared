@@ -97,6 +97,16 @@ fun Navigation(
                 )
                 aboutUsComposable(navController)
                 arrowScreenComposable(navController)
+                
+                // Epic Features
+                aiAssistantComposable(navController)
+                arCameraComposable(navController)
+                liveStreamingComposable(navController)
+                gamingComposable(navController)
+                musicComposable(navController)
+                locationComposable(navController)
+                marketplaceComposable(navController)
+                videoComposable(navController)
             }
         }
     }
@@ -222,5 +232,54 @@ private fun NavGraphBuilder.aboutUsComposable(navController: NavHostController) 
 private fun NavGraphBuilder.arrowScreenComposable(navController: NavHostController) {
     composable(Screen.ArrowScreen.route) {
         ArrowScreen(navController = navController)
+    }
+}
+
+// Epic Features Composables
+private fun NavGraphBuilder.aiAssistantComposable(navController: NavHostController) {
+    composable(Screen.AIAssistant.route) {
+        AIAssistantScreen(navController = navController)
+    }
+}
+
+private fun NavGraphBuilder.arCameraComposable(navController: NavHostController) {
+    composable(Screen.ARCamera.route) {
+        ARCameraScreen(navController = navController)
+    }
+}
+
+private fun NavGraphBuilder.liveStreamingComposable(navController: NavHostController) {
+    composable(Screen.LiveStreaming.route) {
+        LiveStreamingScreen(navController = navController)
+    }
+}
+
+private fun NavGraphBuilder.gamingComposable(navController: NavHostController) {
+    composable(Screen.Gaming.route) {
+        GamingScreen(navController = navController)
+    }
+}
+
+private fun NavGraphBuilder.musicComposable(navController: NavHostController) {
+    composable(Screen.Music.route) {
+        MusicScreen(navController = navController)
+    }
+}
+
+private fun NavGraphBuilder.locationComposable(navController: NavHostController) {
+    composable(Screen.Location.route) {
+        LocationScreen(navController = navController)
+    }
+}
+
+private fun NavGraphBuilder.marketplaceComposable(navController: NavHostController) {
+    composable(Screen.Marketplace.route) {
+        MarketplaceScreen(navController = navController)
+    }
+}
+
+private fun NavGraphBuilder.videoComposable(navController: NavHostController) {
+    composable(Screen.Video.route) {
+        VideoScreen(navController = navController)
     }
 }

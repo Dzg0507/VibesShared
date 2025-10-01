@@ -118,6 +118,8 @@ fun HomeScreen(
             }
 
             item { CreatePostSection(userProfile) }
+            
+            item { EpicFeaturesSection(navController) }
 
             item {
                 if (isLoading) {
@@ -386,6 +388,114 @@ fun PostActionButton(icon: ImageVector, text: String, onClick: () -> Unit) {
         }
     }
 }
+
+@Composable
+fun EpicFeaturesSection(navController: NavController) {
+    val epicFeatures = listOf(
+        EpicFeature("AI Assistant", "🤖", "Smart AI features", "ai_assistant"),
+        EpicFeature("AR Camera", "📸", "Augmented reality", "ar_camera"),
+        EpicFeature("Live Streaming", "📺", "Go live & stream", "live_streaming"),
+        EpicFeature("Gaming", "🎮", "Play mini-games", "gaming"),
+        EpicFeature("Music", "🎵", "Stream & share music", "music"),
+        EpicFeature("Location", "📍", "Check-ins & events", "location"),
+        EpicFeature("Marketplace", "🛒", "Buy & sell items", "marketplace"),
+        EpicFeature("Video", "📹", "Video calls & stories", "video")
+    )
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "🚀 Epic Features",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(epicFeatures.chunked(2)) { featureRow ->
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        featureRow.forEach { feature ->
+                            EpicFeatureCard(
+                                feature = feature,
+                                onClick = { navController.navigate(feature.route) }
+                            )
+                        }
+                        
+                        // Fill remaining space if odd number of features
+                        if (featureRow.size == 1) {
+                            Spacer(modifier = Modifier.height(80.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EpicFeatureCard(
+    feature: EpicFeature,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(140.dp)
+            .height(80.dp)
+            .clickable { onClick() },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = feature.icon,
+                fontSize = 24.sp
+            )
+            
+            Text(
+                text = feature.title,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            
+            Text(
+                text = feature.description,
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+data class EpicFeature(
+    val title: String,
+    val icon: String,
+    val description: String,
+    val route: String
+)
 
 fun generatePosts(count: Int): List<Post> {
     val sampleUsers = List(5) { index ->

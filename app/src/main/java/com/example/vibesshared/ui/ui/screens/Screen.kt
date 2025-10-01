@@ -3,11 +3,7 @@ package com.example.vibesshared.ui.ui.screens
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(
@@ -33,9 +29,23 @@ sealed class Screen(
         const val CHAT_ID_KEY = "chatId"
         fun createRoute(chatId: String) = "messaging/$chatId"
     }
+    
+    // New Epic Features
+    data object AIAssistant : Screen("ai_assistant", Icons.Filled.SmartToy, "AI Assistant")
+    data object ARCamera : Screen("ar_camera", Icons.Filled.CameraAlt, "AR Camera")
+    data object LiveStreaming : Screen("live_streaming", Icons.Filled.LiveTv, "Live Streaming")
+    data object Gaming : Screen("gaming", Icons.Filled.SportsEsports, "Gaming")
+    data object Music : Screen("music", Icons.Filled.MusicNote, "Music")
+    data object Location : Screen("location", Icons.Filled.LocationOn, "Location")
+    data object Marketplace : Screen("marketplace", Icons.Filled.Store, "Marketplace")
+    data object Video : Screen("video", Icons.Filled.Videocam, "Video")
 
     companion object {
         fun bottomNavItems() = listOf(Home, Friends, Chats)
         fun drawerNavItems() = listOf(Profile, Settings, AboutUs, ArrowScreen)
+        fun epicFeatures() = listOf(
+            AIAssistant, ARCamera, LiveStreaming, Gaming, 
+            Music, Location, Marketplace, Video
+        )
     }
 }
