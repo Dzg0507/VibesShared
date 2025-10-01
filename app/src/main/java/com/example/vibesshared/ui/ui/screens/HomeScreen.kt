@@ -399,7 +399,8 @@ fun EpicFeaturesSection(navController: NavController) {
         EpicFeature("Music", "🎵", "Stream & share music", "music"),
         EpicFeature("Location", "📍", "Check-ins & events", "location"),
         EpicFeature("Marketplace", "🛒", "Buy & sell items", "marketplace"),
-        EpicFeature("Video", "📹", "Video calls & stories", "video")
+        EpicFeature("Video", "📹", "Video calls & stories", "video"),
+        EpicFeature("Events", "🎉", "Create & join events", "event_management")
     )
     
     Card(

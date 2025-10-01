@@ -107,6 +107,7 @@ fun Navigation(
                 locationComposable(navController)
                 marketplaceComposable(navController)
                 videoComposable(navController)
+                eventManagementComposable(navController)
             }
         }
     }
@@ -281,5 +282,11 @@ private fun NavGraphBuilder.marketplaceComposable(navController: NavHostControll
 private fun NavGraphBuilder.videoComposable(navController: NavHostController) {
     composable(Screen.Video.route) {
         VideoScreen(navController = navController)
+    }
+}
+
+private fun NavGraphBuilder.eventManagementComposable(navController: NavHostController) {
+    composable(Screen.EventManagement.route) {
+        EventManagementScreen(navController = navController)
     }
 }

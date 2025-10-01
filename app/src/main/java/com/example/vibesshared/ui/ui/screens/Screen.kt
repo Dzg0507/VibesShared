@@ -39,13 +39,14 @@ sealed class Screen(
     data object Location : Screen("location", Icons.Filled.LocationOn, "Location")
     data object Marketplace : Screen("marketplace", Icons.Filled.Store, "Marketplace")
     data object Video : Screen("video", Icons.Filled.Videocam, "Video")
+    data object EventManagement : Screen("event_management", Icons.Filled.Event, "Events")
 
     companion object {
         fun bottomNavItems() = listOf(Home, Friends, Chats)
         fun drawerNavItems() = listOf(Profile, Settings, AboutUs, ArrowScreen)
         fun epicFeatures() = listOf(
             AIAssistant, ARCamera, LiveStreaming, Gaming, 
-            Music, Location, Marketplace, Video
+            Music, Location, Marketplace, Video, EventManagement
         )
     }
 }
