@@ -400,7 +400,8 @@ fun EpicFeaturesSection(navController: NavController) {
         EpicFeature("Location", "📍", "Check-ins & events", "location"),
         EpicFeature("Marketplace", "🛒", "Buy & sell items", "marketplace"),
         EpicFeature("Video", "📹", "Video calls & stories", "video"),
-        EpicFeature("Events", "🎉", "Create & join events", "event_management")
+        EpicFeature("Events", "🎉", "Create & join events", "event_management"),
+        EpicFeature("Advanced Chat", "💬", "Voice, reactions & more", "advanced_messaging")
     )
     
     Card(

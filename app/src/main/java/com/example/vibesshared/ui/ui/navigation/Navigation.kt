@@ -108,6 +108,7 @@ fun Navigation(
                 marketplaceComposable(navController)
                 videoComposable(navController)
                 eventManagementComposable(navController)
+                advancedMessagingComposable(navController)
             }
         }
     }
@@ -288,5 +289,11 @@ private fun NavGraphBuilder.videoComposable(navController: NavHostController) {
 private fun NavGraphBuilder.eventManagementComposable(navController: NavHostController) {
     composable(Screen.EventManagement.route) {
         EventManagementScreen(navController = navController)
+    }
+}
+
+private fun NavGraphBuilder.advancedMessagingComposable(navController: NavHostController) {
+    composable(Screen.AdvancedMessaging.route) {
+        AdvancedMessagingScreen(navController = navController)
     }
 }
