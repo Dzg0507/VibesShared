@@ -1,5 +1,6 @@
 package com.example.vibesshared.ui.ui.screens
 
+import com.example.vibesshared.ui.ui.components.UserProfile
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -46,7 +47,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.vibesshared.R
-import com.example.vibesshared.ui.ui.components.UserProfile
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
 import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch

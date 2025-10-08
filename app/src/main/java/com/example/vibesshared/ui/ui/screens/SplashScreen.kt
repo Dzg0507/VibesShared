@@ -2,16 +2,19 @@ package com.example.vibesshared.ui.ui.screens
 
 import android.app.Activity
 import android.view.Window
+import androidx.activity.compose.LocalActivity
+import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.media3.common.util.UnstableApi
 import com.example.vibesshared.R
+import com.example.vibesshared.ui.ui.components.VideoPlayer
 
 fun setSystemBars(window: Window, hide: Boolean) {
     WindowCompat.setDecorFitsSystemWindows(window, !hide)
@@ -24,9 +27,10 @@ fun setSystemBars(window: Window, hide: Boolean) {
     }
 }
 
+@OptIn(UnstableApi::class)
 @Composable
-fun SplashScreen(onSplashFinished: () -> Unit) {
-    val activity = LocalContext.current as Activity // Cast to Activity
+fun SplashScreen(onTimeout: () -> Unit) {
+    val activity = LocalActivity.current as Activity // Cast to Activity
 
     LaunchedEffect(Unit) {
         activity.window?.also { window -> setSystemBars(window, true) }
@@ -40,11 +44,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
 
     VideoPlayer(
         modifier = Modifier.fillMaxSize(),
-        videoResId = R.raw.paint_anim,
-        onVideoEnd = onSplashFinished
+        videoResId = R.raw.char_splash,
+        onVideoEnd = onTimeout
     )
 }
-
-@Composable
-fun VideoPlayer(modifier: Modifier, videoResId: Int, onVideoEnd: () -> Unit) {
-    LocalContext.current}

@@ -46,8 +46,7 @@ import androidx.navigation.NavController
 import com.example.vibesshared.R
 import com.example.vibesshared.ui.ui.viewmodel.AuthState
 import com.example.vibesshared.ui.ui.viewmodel.AuthViewModel
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -63,8 +62,7 @@ fun ForgotPasswordScreen(
     var resetEmailSent by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val authState by authViewModel.authState.collectAsState()
-    val auth = Firebase.auth
-
+    val auth = FirebaseAuth.getInstance()
     LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Error -> {
